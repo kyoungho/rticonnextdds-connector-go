@@ -56,3 +56,14 @@ check-libs:
 .PHONY: list-lib-versions
 list-lib-versions:
 	go run ./cmd/download-libs -list
+
+.PHONY: docs
+docs:
+	@echo "📚 Generating API documentation..."
+	@mkdir -p docs
+	go doc -all > docs/API.md
+
+.PHONY: docs-clean
+docs-clean:
+	@echo "🧹 Cleaning generated documentation..."
+	@rm -f docs/API.md

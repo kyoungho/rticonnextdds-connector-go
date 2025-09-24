@@ -312,6 +312,7 @@ The native code was originally designed for single-threaded environments (RTI Pr
 
 ## Documentation
 
+- � **[API Reference](docs/API.md)** - Complete Go API documentation
 - 📖 **[Examples](examples/README.md)** - Comprehensive examples and tutorials  
 - 🧪 **[Testing Guide](TESTING.md)** - Development and testing guidelines
 - 📚 **[Library Management](docs/LIBRARY_MANAGEMENT.md)** - Managing RTI Connector libraries
