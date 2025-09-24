@@ -4,7 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rticommunity/rticonnextdds-connector-go)](https://goreportcard.com/report/github.com/rticommunity/rticonnextdds-connector-go)
 [![Build and Test](https://github.com/rticommunity/rticonnextdds-connector-go/actions/workflows/build.yml/badge.svg)](https://github.com/rticommunity/rticonnextdds-connector-go/actions/workflows/build.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/rticommunity/rticonnextdds-connector-go)](https://github.com/rticommunity/rticonnextdds-connector-go/blob/master/go.mod)
-[![API Documentation](https://img.shields.io/badge/API-Documentation-blue)](https://godocs.io/github.com/rticommunity/rticonnextdds-connector-go)
+[![Go Documentation](https://godocs.io/github.com/rticommunity/rticonnextdds-connector-go?status.svg)](https://godocs.io/github.com/rticommunity/rticonnextdds-connector-go)
 
 > A lightweight, easy-to-use Go binding for RTI Connext DDS that enables rapid development of distributed applications.
 
