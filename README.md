@@ -4,6 +4,7 @@
 [![Go Report Card](https://goreportcard.com/badge/github.com/rticommunity/rticonnextdds-connector-go)](https://goreportcard.com/report/github.com/rticommunity/rticonnextdds-connector-go)
 [![Build and Test](https://github.com/rticommunity/rticonnextdds-connector-go/actions/workflows/build.yml/badge.svg)](https://github.com/rticommunity/rticonnextdds-connector-go/actions/workflows/build.yml)
 [![Go Version](https://img.shields.io/github/go-mod/go-version/rticommunity/rticonnextdds-connector-go)](https://github.com/rticommunity/rticonnextdds-connector-go/blob/master/go.mod)
+[![API Documentation](https://img.shields.io/badge/API-Documentation-blue)](https://godocs.io/github.com/rticommunity/rticonnextdds-connector-go)
 
 > A lightweight, easy-to-use Go binding for RTI Connext DDS that enables rapid development of distributed applications.
 
@@ -312,7 +313,7 @@ The native code was originally designed for single-threaded environments (RTI Pr
 
 ## Documentation
 
-- � **[API Reference](docs/API.md)** - Complete Go API documentation
+- � **[API Reference](https://godocs.io/github.com/rticommunity/rticonnextdds-connector-go)** - Complete Go API documentation
 - 📖 **[Examples](examples/README.md)** - Comprehensive examples and tutorials  
 - 🧪 **[Testing Guide](TESTING.md)** - Development and testing guidelines
 - 📚 **[Library Management](docs/LIBRARY_MANAGEMENT.md)** - Managing RTI Connector libraries
