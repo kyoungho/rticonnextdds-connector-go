@@ -8,7 +8,6 @@
 *                                                                            *
 *****************************************************************************/
 
-// Package rti implements functions of RTI Connector for Connext DDS in Go
 package rti
 
 // #include "rticonnextdds-connector.h"
