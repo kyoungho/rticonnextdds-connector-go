@@ -23,20 +23,44 @@ import (
 * Types *
 *********/
 
-// Output publishes DDS data
+// Output represents a DDS DataWriter for publishing data.
+//
+// An Output allows you to publish data samples to DDS Topics. It wraps a
+// native RTI Connext DataWriter and provides methods to write data samples.
+//
+// Use the Instance field to set data values, then call Write() to publish.
+// The Instance can be reused for multiple writes - just update the field
+// values and call Write() again.
 type Output struct {
 	native    unsafe.Pointer // a pointer to a native DataWriter
 	connector *Connector
 	name      string // name of the native DataWriter
 	nameCStr  *C.char
-	Instance  *Instance
+	Instance  *Instance // Data instance for setting field values
 }
 
 /*******************
 * Public Functions *
 *******************/
 
-// Write is a function to write a DDS data instance in an output
+// Write publishes the current instance data to the DDS Topic.
+//
+// The data to be written must be set first using the Instance field methods
+// (e.g., SetString, SetInt32, SetJSON). This method publishes whatever values
+// are currently set in the Instance.
+//
+// Returns:
+//   - error: Non-nil if the write operation fails
+//
+// Example:
+//
+//	output.Instance.SetString("color", "BLUE")
+//	output.Instance.SetInt32("x", 100)
+//	output.Instance.SetInt32("y", 200)
+//	err := output.Write()
+//	if err != nil {
+//	    log.Printf("Write failed: %v", err)
+//	}
 func (output *Output) Write() error {
 	if output == nil {
 		return errors.New("output is null")

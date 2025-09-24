@@ -8,7 +8,36 @@
 *                                                                            *
 *****************************************************************************/
 
-// Package rti implements functions of RTI Connector for Connext DDS in Go
+// Package rti implements functions of RTI Connector for Connext DDS in Go.
+//
+// RTI Connector provides a lightweight, easy-to-use API for RTI Connext DDS
+// that enables rapid development of distributed applications. It is built on
+// XML-Based Application Creation and Dynamic Data, allowing you to define
+// data types and QoS policies in XML configuration files.
+//
+// Quick Start Example:
+//
+//	connector, err := rti.NewConnector("MyParticipant", "config.xml")
+//	if err != nil {
+//	    log.Fatal(err)
+//	}
+//	defer connector.Delete()
+//
+//	// Write data
+//	output, _ := connector.GetOutput("MyWriter")
+//	output.Instance.SetString("color", "RED")
+//	output.Write()
+//
+//	// Read data
+//	input, _ := connector.GetInput("MyReader")
+//	input.Take()
+//	length, _ := input.Samples.GetLength()
+//	for i := 0; i < length; i++ {
+//	    color, _ := input.Samples.GetString(i, "color")
+//	    fmt.Printf("Received: %s\n", color)
+//	}
+//
+// For complete examples, see: https://github.com/rticommunity/rticonnextdds-connector-go/tree/master/examples
 package rti
 
 // #include "rticonnextdds-connector.h"
@@ -33,15 +62,36 @@ var ErrTimeout = errors.New("DDS Exception: Timeout")
 * Types *
 *********/
 
-// Connector is a container managing DDS inputs and outputs
+// Connector is a container managing DDS inputs and outputs.
+//
+// It represents the main entry point for DDS communication, encapsulating
+// a DDS DomainParticipant and providing access to DataReaders (inputs) and
+// DataWriters (outputs) defined in XML configuration files.
+//
+// The Connector is not thread-safe. You must provide your own synchronization
+// when using it from multiple goroutines.
 type Connector struct {
 	native  *C.RTI_Connector
-	Inputs  []Input
-	Outputs []Output
+	Inputs  []Input  // Collection of available DataReaders
+	Outputs []Output // Collection of available DataWriters
 }
 
-// SampleHandler is an User defined function type that takes in pointers of
-// Samples and Infos and will handle received samples.
+// SampleHandler is a user-defined function type for processing received DDS samples.
+//
+// It takes pointers to Samples (containing the actual data) and Infos (containing
+// metadata like timestamps, sample states, etc.) and processes the received samples.
+//
+// Example usage:
+//
+//	handler := func(samples *rti.Samples, infos *rti.Infos) {
+//	    length, _ := samples.GetLength()
+//	    for i := 0; i < length; i++ {
+//	        if valid, _ := infos.IsValid(i); valid {
+//	            color, _ := samples.GetString(i, "color")
+//	            fmt.Printf("Received: %s\n", color)
+//	        }
+//	    }
+//	}
 type SampleHandler func(samples *Samples, infos *Infos)
 
 const (
@@ -57,16 +107,28 @@ const (
 * Public Functions *
 *******************/
 
-// NewConnector is a constructor of Connector.
+// NewConnector creates a new Connector instance from XML configuration.
 //
-// url is the location of XML documents in URL format. For example:
+// Parameters:
+//   - configName: The name of the DomainParticipant configuration from the XML file
+//     (format: "ParticipantLibrary::ParticipantName")
+//   - url: The location of XML configuration documents
 //
-//	File specification: file:///usr/local/default_dds.xml
-//	String specification: str://"<dds><qos_library>…</qos_library></dds>"
+// URL formats supported:
+//   - File path: "file:///usr/local/config.xml" or "/usr/local/config.xml"
+//   - Inline XML: "str://<dds><qos_library>...</qos_library></dds>"
 //
-// If you omit the URL schema name, Connector will assume a file name. For example:
+// Returns:
+//   - *Connector: A new Connector instance ready for use
+//   - error: Non-nil if the configuration is invalid or file cannot be loaded
 //
-//	File Specification: /usr/local/default_dds.xml
+// Example:
+//
+//	connector, err := rti.NewConnector("MyParticipantLibrary::Zero", "./ShapeExample.xml")
+//	if err != nil {
+//	    log.Fatal("Failed to create connector:", err)
+//	}
+//	defer connector.Delete()
 func NewConnector(configName, url string) (*Connector, error) {
 	connector := new(Connector)
 

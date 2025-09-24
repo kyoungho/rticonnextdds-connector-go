@@ -23,7 +23,18 @@ import (
 * Types *
 *********/
 
-// Instance is used by an output to write DDS data
+// Instance represents a data sample that can be written to a DDS output.
+//
+// An Instance provides methods to set field values for a DDS sample before
+// writing it to the data bus. Each Instance is associated with a specific
+// Output and provides type-safe methods for setting various data types.
+//
+// Example usage:
+//   instance := output.Instance()
+//   instance.SetString("color", "BLUE")
+//   instance.SetInt32("x", 100)
+//   instance.SetInt32("y", 200)
+//   output.Write()
 type Instance struct {
 	output *Output
 }
@@ -32,7 +43,20 @@ type Instance struct {
 * Public Functions *
 *******************/
 
-// SetUint8 is a function to set a value of type uint8 into samples
+// SetUint8 sets a uint8 value for the specified field in the instance.
+//
+// Parameters:
+//   - fieldName: The name of the field to set (must match XML type definition)
+//   - value: The uint8 value to set
+//
+// Returns:
+//   - error: Non-nil if the field doesn't exist or type conversion fails
+//
+// Example:
+//   err := instance.SetUint8("status", 255)
+//   if err != nil {
+//       log.Printf("Failed to set status: %v", err)
+//   }
 func (instance *Instance) SetUint8(fieldName string, value uint8) error {
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
@@ -141,7 +165,21 @@ func (instance *Instance) SetFloat64(fieldName string, value float64) error {
 }
 
 // SetString is a function that set a string to a fieldname of the samples
-func (instance *Instance) SetString(fieldName, value string) error {
+// SetString sets a string value for the specified field in the instance.
+//
+// Parameters:
+//   - fieldName: The name of the string field to set
+//   - value: The string value to set
+//
+// Returns:
+//   - error: Non-nil if the field doesn't exist
+//
+// Example:
+//   err := instance.SetString("color", "BLUE")
+//   if err != nil {
+//       log.Printf("Failed to set color: %v", err)
+//   }
+func (instance *Instance) SetString(fieldName string, value string) error {
 	if instance == nil || instance.output == nil || instance.output.connector == nil {
 		return errors.New("instance, output, or connector is null")
 	}
@@ -177,7 +215,20 @@ func (instance *Instance) SetRune(fieldName string, value rune) error {
 	return checkRetcode(retcode)
 }
 
-// SetBoolean is a function to set boolean to a fieldname of the samples
+// SetBoolean sets a boolean value for the specified field in the instance.
+//
+// Parameters:
+//   - fieldName: The name of the boolean field to set
+//   - value: The boolean value to set
+//
+// Returns:
+//   - error: Non-nil if the field doesn't exist
+//
+// Example:
+//   err := instance.SetBoolean("enabled", true)
+//   if err != nil {
+//       log.Printf("Failed to set enabled flag: %v", err)
+//   }
 func (instance *Instance) SetBoolean(fieldName string, value bool) error {
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
@@ -190,7 +241,23 @@ func (instance *Instance) SetBoolean(fieldName string, value bool) error {
 	return checkRetcode(retcode)
 }
 
-// SetJSON is a function to set JSON string in the form of slice of bytes into Instance
+// SetJSON sets all fields in the instance from a JSON byte array.
+//
+// This method allows setting multiple fields at once by providing a JSON
+// representation of the data. The JSON structure must match the XML type definition.
+//
+// Parameters:
+//   - blob: JSON data as a byte array
+//
+// Returns:
+//   - error: Non-nil if the JSON is invalid or doesn't match the XML type structure
+//
+// Example:
+//   jsonData := []byte(`{"color":"RED","x":10,"y":20}`)
+//   err := instance.SetJSON(jsonData)
+//   if err != nil {
+//       log.Printf("Failed to set JSON: %v", err)
+//   }
 func (instance *Instance) SetJSON(blob []byte) error {
 	jsonCStr := C.CString(string(blob))
 	defer C.free(unsafe.Pointer(jsonCStr))
@@ -199,9 +266,30 @@ func (instance *Instance) SetJSON(blob []byte) error {
 	return checkRetcode(retcode)
 }
 
-// Set is a function that consumes an interface
-// of multiple samples with different types and value
-// TODO - think about a new name for this a function (e.g. SetType, SetFromType, FromType)
+// Set marshals a Go struct/interface into the instance.
+//
+// This method provides a convenient way to set all fields at once by passing
+// a Go struct that matches the XML type definition. The struct is marshaled to JSON
+// and then applied to the instance.
+//
+// Parameters:
+//   - v: A struct or interface containing the data to set
+//
+// Returns:
+//   - error: Non-nil if marshaling fails or the data doesn't match the XML type structure
+//
+// Example:
+//   type ShapeType struct {
+//       Color string `json:"color"`
+//       X     int32  `json:"x"`
+//       Y     int32  `json:"y"`
+//   }
+//   
+//   shape := ShapeType{Color: "GREEN", X: 50, Y: 75}
+//   err := instance.Set(shape)
+//   if err != nil {
+//       log.Printf("Failed to set instance: %v", err)
+//   }
 func (instance *Instance) Set(v interface{}) error {
 	jsonData, err := json.Marshal(v)
 	if err != nil {

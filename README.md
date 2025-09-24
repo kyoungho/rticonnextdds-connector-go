@@ -31,8 +31,8 @@ Originally created by the RTI Research Group for demos and proof-of-concepts, RT
 
 ✨ **Simple API** - Easy-to-use Go interface that hides DDS complexity  
 🚀 **Rapid Development** - Get up and running with DDS in minutes  
-🔄 **Dynamic Data** - No need to generate code from IDL files  
-📄 **XML Configuration** - Define data types and QoS policies in XML  
+🔄 **Dynamic Data** - No need to generate code from type definitions  
+📄 **XML Configuration** - Define data types and QoS policies declaratively in XML  
 🌐 **Cross-Platform** - Supports Linux x64, macOS, and Windows x64  
 
 ## Quick Start

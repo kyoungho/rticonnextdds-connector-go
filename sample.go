@@ -22,7 +22,15 @@ import (
 * Types *
 *********/
 
-// Samples is a sequence of data samples used by an input to read DDS data
+// Samples is a sequence of data samples received from a DDS DataReader.
+//
+// After calling input.Read() or input.Take(), the Samples collection contains
+// the actual data values. Use GetLength() to determine how many samples are
+// available, then access individual samples by index using the type-specific
+// getter methods (GetString, GetInt32, GetFloat64, etc.).
+//
+// Sample indices are 0-based. Always check input.Infos.IsValid(i) before
+// accessing sample data at index i.
 type Samples struct {
 	input *Input
 }
@@ -40,7 +48,14 @@ func (samples *Samples) getNumber(index int, fieldName string, retVal *C.double)
 * Public Functions *
 *******************/
 
-// GetLength is a function to get the number of samples
+// GetLength returns the number of samples in the collection.
+//
+// This should be called after input.Read() or input.Take() to determine
+// how many samples are available for processing.
+//
+// Returns:
+//   - int: Number of samples (0 if no samples available)
+//   - error: Non-nil if the operation fails
 func (samples *Samples) GetLength() (int, error) {
 	var retVal C.double
 	retcode := int(C.RTI_Connector_get_sample_count(unsafe.Pointer(samples.input.connector.native), samples.input.nameCStr, &retVal))
@@ -48,7 +63,22 @@ func (samples *Samples) GetLength() (int, error) {
 	return int(retVal), err
 }
 
-// GetUint8 is a function to retrieve a value of type uint8 from the samples
+// GetUint8 retrieves a uint8 value from a specific field in a sample.
+//
+// Parameters:
+//   - index: The index of the sample (0-based, use GetLength() to get valid range)
+//   - fieldName: The name of the field to retrieve (must match XML type definition)
+//
+// Returns:
+//   - uint8: The field value as an unsigned 8-bit integer
+//   - error: Non-nil if the field doesn't exist, index is out of bounds, or type conversion fails
+//
+// Example:
+//
+//	value, err := samples.GetUint8(0, "status")
+//	if err != nil {
+//	    log.Printf("Failed to get status: %v", err)
+//	}
 func (samples *Samples) GetUint8(index int, fieldName string) (uint8, error) {
 	var retVal C.double
 	err := samples.getNumber(index, fieldName, &retVal)
@@ -146,7 +176,22 @@ func (samples *Samples) GetRune(index int, fieldName string) (rune, error) {
 	return rune(retVal), err
 }
 
-// GetBoolean is a function to retrieve a value of type boolean from the samples
+// GetBoolean retrieves a boolean value from a specific field in a sample.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//   - fieldName: The name of the boolean field to retrieve
+//
+// Returns:
+//   - bool: The field value as a boolean
+//   - error: Non-nil if the field doesn't exist, index is out of bounds, or type conversion fails
+//
+// Example:
+//
+//	isActive, err := samples.GetBoolean(0, "enabled")
+//	if err != nil {
+//	    log.Printf("Failed to get enabled status: %v", err)
+//	}
 func (samples *Samples) GetBoolean(index int, fieldName string) (bool, error) {
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
@@ -159,7 +204,22 @@ func (samples *Samples) GetBoolean(index int, fieldName string) (bool, error) {
 	return (retVal != 0), err
 }
 
-// GetString is a function to retrieve a value of type string from the samples
+// GetString retrieves a string value from a specific field in a sample.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//   - fieldName: The name of the string field to retrieve
+//
+// Returns:
+//   - string: The field value as a string (empty string if field is null)
+//   - error: Non-nil if the field doesn't exist or index is out of bounds
+//
+// Example:
+//
+//	name, err := samples.GetString(0, "color")
+//	if err != nil {
+//	    log.Printf("Failed to get color: %v", err)
+//	}
 func (samples *Samples) GetString(index int, fieldName string) (string, error) {
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
@@ -179,28 +239,72 @@ func (samples *Samples) GetString(index int, fieldName string) (string, error) {
 }
 
 // GetJSON is a function to retrieve a slice of bytes of a JSON string from the samples
-func (samples *Samples) GetJSON(index int) ([]byte, error) {
+// GetJSON returns the complete JSON representation of a sample's data.
+//
+// This method serializes all fields of the specified sample into a JSON string,
+// which is useful for debugging, logging, or converting to other data formats.
+//
+// Parameters:
+//   - index: The index of the sample to serialize (0-based)
+//
+// Returns:
+//   - string: JSON representation of the sample data
+//   - error: Non-nil if the index is out of bounds or serialization fails
+//
+// Example:
+//
+//	jsonData, err := samples.GetJSON(0)
+//	if err != nil {
+//	    log.Printf("Failed to get JSON: %v", err)
+//	} else {
+//	    fmt.Printf("Sample data: %s\n", jsonData)
+//	}
+func (samples *Samples) GetJSON(index int) (string, error) {
 	var retValCStr *C.char
 
 	retcode := int(C.RTI_Connector_get_json_sample(unsafe.Pointer(samples.input.connector.native), samples.input.nameCStr, C.int(index+1), &retValCStr))
 	err := checkRetcode(retcode)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	retValGoStr := C.GoString(retValCStr)
 	C.RTI_Connector_free_string(retValCStr)
 
-	return []byte(retValGoStr), err
+	return retValGoStr, err
 }
 
-// Get is a function to retrieve all the information
-// of the samples and put it into an interface
+// Get unmarshals a sample's data into a Go struct or interface.
+//
+// This method retrieves the JSON representation of the sample and unmarshals
+// it into the provided interface. The target interface should have fields
+// that match the XML structure (use json tags for field mapping if needed).
+//
+// Parameters:
+//   - index: The index of the sample to retrieve (0-based)
+//   - v: Pointer to the target struct/interface to unmarshal into
+//
+// Returns:
+//   - error: Non-nil if the index is out of bounds or unmarshaling fails
+//
+// Example:
+//
+//	type ShapeType struct {
+//	    Color string `json:"color"`
+//	    X     int32  `json:"x"`
+//	    Y     int32  `json:"y"`
+//	}
+//
+//	var shape ShapeType
+//	err := samples.Get(0, &shape)
+//	if err != nil {
+//	    log.Printf("Failed to unmarshal sample: %v", err)
+//	}
 func (samples *Samples) Get(index int, v interface{}) error {
 	jsonData, err := samples.GetJSON(index)
 	if err != nil {
 		return err
 	}
 
-	return json.Unmarshal(jsonData, &v)
+	return json.Unmarshal([]byte(jsonData), &v)
 }

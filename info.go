@@ -24,22 +24,60 @@ import (
 * Types *
 *********/
 
-// Infos is a sequence of info samples used by an input to read DDS meta data
+// Infos represents a collection of DDS metadata samples.
+//
+// Infos provides access to DDS sample metadata such as validity flags,
+// timestamps, source identifiers, and other QoS-related information.
+// This metadata is available for each sample received through an Input.
+//
+// Example usage:
+//   input.Read()
+//   samples := input.Samples()
+//   infos := input.Infos()
+//   
+//   for i := 0; i < samples.Length(); i++ {
+//       isValid, _ := infos.IsValid(i)
+//       if isValid {
+//           timestamp, _ := infos.GetSourceTimestamp(i)
+//           fmt.Printf("Valid sample at time: %d\n", timestamp)
+//       }
+//   }
 type Infos struct {
 	input *Input
 }
 
-// Identity is the structure for identifying
+// Identity uniquely identifies a DDS sample and its source writer.
+//
+// Each DDS sample has an associated Identity that includes the GUID
+// of the writer that published it and a sequence number for ordering.
 type Identity struct {
-	WriterGUID     [16]byte `json:"writer_guid"`
-	SequenceNumber int      `json:"sequence_number"`
+	WriterGUID     [16]byte `json:"writer_guid"`     // Unique identifier of the publishing writer
+	SequenceNumber int      `json:"sequence_number"` // Sequence number for sample ordering
 }
 
 /*******************
 * Public Functions *
 *******************/
 
-// IsValid is a function to check validity of the element and return a boolean
+// IsValid checks whether a sample contains valid data.
+//
+// This method returns true if the sample at the specified index contains
+// valid data (not disposed or no-writers), false otherwise.
+//
+// Parameters:
+//   - index: The index of the sample to check (0-based)
+//
+// Returns:
+//   - bool: true if the sample contains valid data
+//   - error: Non-nil if the index is out of bounds or operation fails
+//
+// Example:
+//   isValid, err := infos.IsValid(0)
+//   if err != nil {
+//       log.Printf("Failed to check validity: %v", err)
+//   } else if isValid {
+//       // Process the valid sample
+//   }
 func (infos *Infos) IsValid(index int) (bool, error) {
 	if infos == nil || infos.input == nil || infos.input.connector == nil {
 		return false, errors.New("infos, input, or connector is null")
@@ -58,7 +96,25 @@ func (infos *Infos) IsValid(index int) (bool, error) {
 	return (retVal != 0), err
 }
 
-// GetSourceTimestamp is a function to get the source timestamp of a sample
+// GetSourceTimestamp retrieves the source timestamp of a sample.
+//
+// The source timestamp represents when the sample was written by the
+// publishing application, as opposed to when it was received.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//
+// Returns:
+//   - int64: Source timestamp in nanoseconds since epoch
+//   - error: Non-nil if the index is out of bounds or operation fails
+//
+// Example:
+//   timestamp, err := infos.GetSourceTimestamp(0)
+//   if err != nil {
+//       log.Printf("Failed to get timestamp: %v", err)
+//   } else {
+//       fmt.Printf("Sample written at: %d ns\n", timestamp)
+//   }
 func (infos *Infos) GetSourceTimestamp(index int) (int64, error) {
 	tsStr, err := infos.getJSONMember(index, "source_timestamp")
 	if err != nil {
@@ -73,7 +129,25 @@ func (infos *Infos) GetSourceTimestamp(index int) (int64, error) {
 	return ts, nil
 }
 
-// GetReceptionTimestamp is a function to get the reception timestamp of a sample
+// GetReceptionTimestamp retrieves the reception timestamp of a sample.
+//
+// The reception timestamp represents when the sample was received by the
+// local participant, which may be different from when it was originally written.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//
+// Returns:
+//   - int64: Reception timestamp in nanoseconds since epoch
+//   - error: Non-nil if the index is out of bounds or operation fails
+//
+// Example:
+//   recvTime, err := infos.GetReceptionTimestamp(0)
+//   if err != nil {
+//       log.Printf("Failed to get reception time: %v", err)
+//   } else {
+//       fmt.Printf("Sample received at: %d ns\n", recvTime)
+//   }
 func (infos *Infos) GetReceptionTimestamp(index int) (int64, error) {
 	tsStr, err := infos.getJSONMember(index, "reception_timestamp")
 	if err != nil {
@@ -88,7 +162,25 @@ func (infos *Infos) GetReceptionTimestamp(index int) (int64, error) {
 	return ts, nil
 }
 
-// GetIdentity is a function to get the identity of a writer that sent the sample
+// GetIdentity retrieves the identity of the writer that published a sample.
+//
+// The identity includes the writer's GUID and the sequence number of the sample,
+// which together uniquely identify the sample and its source.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//
+// Returns:
+//   - Identity: Structure containing writer GUID and sequence number
+//   - error: Non-nil if the index is out of bounds or operation fails
+//
+// Example:
+//   identity, err := infos.GetIdentity(0)
+//   if err != nil {
+//       log.Printf("Failed to get identity: %v", err)
+//   } else {
+//       fmt.Printf("Writer GUID: %x, Seq: %d\n", identity.WriterGUID, identity.SequenceNumber)
+//   }
 func (infos *Infos) GetIdentity(index int) (Identity, error) {
 
 	var writerID Identity
@@ -107,7 +199,25 @@ func (infos *Infos) GetIdentity(index int) (Identity, error) {
 	return writerID, nil
 }
 
-// GetIdentityJSON is a function to get the identity of a writer in JSON
+// GetIdentityJSON retrieves the identity of a writer as a JSON string.
+//
+// This method returns the same information as GetIdentity() but formatted
+// as a JSON string, which can be useful for logging or serialization.
+//
+// Parameters:
+//   - index: The index of the sample (0-based)
+//
+// Returns:
+//   - string: JSON representation of the identity
+//   - error: Non-nil if the index is out of bounds or operation fails
+//
+// Example:
+//   identityJSON, err := infos.GetIdentityJSON(0)
+//   if err != nil {
+//       log.Printf("Failed to get identity JSON: %v", err)
+//   } else {
+//       fmt.Printf("Identity: %s\n", identityJSON)
+//   }
 func (infos *Infos) GetIdentityJSON(index int) (string, error) {
 	identityStr, err := infos.getJSONMember(index, "sample_identity")
 	if err != nil {

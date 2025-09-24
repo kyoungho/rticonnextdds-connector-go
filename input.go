@@ -22,23 +22,56 @@ import (
 * Types *
 *********/
 
-// Input subscribes to DDS data
+// Input represents a DDS DataReader for subscribing to data.
+//
+// An Input allows you to receive data samples from DDS Topics. It wraps a
+// native RTI Connext DataReader and provides methods to read or take samples.
+//
+// Key differences:
+//   - Read(): Copies samples but leaves them in the DataReader's queue
+//   - Take(): Removes samples from the DataReader's queue
+//
+// Access received data through the Samples field (actual data) and
+// Infos field (metadata like timestamps and sample states).
 type Input struct {
 	native    unsafe.Pointer // a pointer to a native DataReader
 	connector *Connector
 	name      string // name of the native DataReader
 	nameCStr  *C.char
-	Samples   *Samples
-	Infos     *Infos
+	Samples   *Samples // Collection of received data samples
+	Infos     *Infos   // Collection of sample metadata
 }
 
 /*******************
 * Public Functions *
 *******************/
 
-// Read is a function to read DDS samples from the DDS DataReader
-// and allow access them via the Connector Samples. The Read function
-// does not remove DDS samples from the DDS DataReader's receive queue.
+// Read copies DDS samples from the DataReader without removing them from the receive queue.
+//
+// After a successful read, samples can be accessed via input.Samples and metadata
+// via input.Infos. The samples remain in the DataReader's queue and can be read
+// again. Use Take() if you want to remove samples from the queue.
+//
+// Returns:
+//   - error: ErrNoData if no samples available, ErrTimeout on timeout, or other error
+//
+// Example:
+//
+//	err := input.Read()
+//	if err == rti.ErrNoData {
+//	    // No data available
+//	    return
+//	}
+//	if err != nil {
+//	    log.Printf("Read error: %v", err)
+//	    return
+//	}
+//	
+//	length, _ := input.Samples.GetLength()
+//	for i := 0; i < length; i++ {
+//	    color, _ := input.Samples.GetString(i, "color")
+//	    fmt.Printf("Read: %s\n", color)
+//	}
 func (input *Input) Read() error {
 	if input == nil {
 		return errors.New("input is null")
