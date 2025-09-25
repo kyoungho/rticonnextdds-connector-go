@@ -10,6 +10,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -106,18 +107,9 @@ func detectPlatform() string {
 	return ""
 }
 
-// getPlatformWithFallback returns the preferred platform and a fallback if needed
-func getPlatformWithFallback() (string, string) {
-	preferred := detectPlatform()
-
-	// Define fallbacks for platforms that might not be available in older releases
-	fallbacks := map[string]string{
-		"osx-arm64":   "osx-x64",   // Apple Silicon can run Intel binaries
-		"linux-arm64": "linux-x64", // Some ARM64 systems can run x64 with emulation
-	}
-
-	fallback := fallbacks[preferred]
-	return preferred, fallback
+// getPlatform returns the platform identifier for the current system
+func getPlatform() string {
+	return detectPlatform()
 }
 
 func listVersions() {
@@ -194,36 +186,24 @@ func getDownloadURL(version string) (string, string, error) {
 }
 
 func showCurrent(dest string) {
-	preferred, fallback := getPlatformWithFallback()
-	libPath := filepath.Join(dest, "rticonnextdds-connector", "lib", preferred)
+	platform := getPlatform()
+	libPath := filepath.Join(dest, "rticonnextdds-connector", "lib", platform)
 
 	fmt.Println("📋 Current Installation:")
-	fmt.Printf("  Platform: %s", preferred)
-	if fallback != "" {
-		fmt.Printf(" (fallback: %s)", fallback)
-	}
-	fmt.Printf("\n")
+	fmt.Printf("  Platform: %s\n", platform)
 	fmt.Printf("  Library path: %s\n", libPath)
 
-	// Check preferred platform first
+	// Check for version information
+	version := getInstalledVersion(dest)
+	if version != "" {
+		fmt.Printf("  Version: %s\n", version)
+	}
+
+	// Check if libraries exist
 	if _, err := os.Stat(libPath); os.IsNotExist(err) {
-		// Try fallback if preferred doesn't exist
-		if fallback != "" {
-			fallbackPath := filepath.Join(dest, "rticonnextdds-connector", "lib", fallback)
-			if _, err := os.Stat(fallbackPath); err == nil {
-				fmt.Printf("  Status: ✅ Libraries installed (using fallback %s)\n", fallback)
-				fmt.Printf("  Fallback path: %s\n", fallbackPath)
-				libPath = fallbackPath // Use fallback path for listing files
-			} else {
-				fmt.Printf("  Status: ❌ No libraries found\n")
-				fmt.Printf("  Run: go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest\n")
-				return
-			}
-		} else {
-			fmt.Printf("  Status: ❌ No libraries found\n")
-			fmt.Printf("  Run: go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest\n")
-			return
-		}
+		fmt.Printf("  Status: ❌ No libraries found\n")
+		fmt.Printf("  Run: go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest\n")
+		return
 	} else {
 		fmt.Printf("  Status: ✅ Libraries installed\n")
 	}
@@ -251,8 +231,73 @@ func showCurrent(dest string) {
 	}
 }
 
+// getInstalledVersion attempts to detect the installed version of RTI Connector libraries
+func getInstalledVersion(dest string) string {
+	return detectVersionFromLibraries(dest)
+} // detectVersionFromLibraries tries to determine version based on library characteristics
+func detectVersionFromLibraries(dest string) string {
+	platform := getPlatform()
+	libPath := filepath.Join(dest, "rticonnextdds-connector", "lib", platform)
+
+	// Check if libraries exist
+	if _, err := os.Stat(libPath); os.IsNotExist(err) {
+		return ""
+	}
+
+	// Try to extract version from the connector library binary
+	connectorLib := filepath.Join(libPath, "librtiddsconnector")
+
+	// Add appropriate file extension based on platform
+	switch runtime.GOOS {
+	case "linux":
+		connectorLib += ".so"
+	case "darwin":
+		connectorLib += ".dylib"
+	case "windows":
+		connectorLib += ".dll"
+	}
+
+	if version := extractVersionFromBinary(connectorLib); version != "" {
+		return version
+	}
+
+	return "unknown (installed before version tracking)"
+}
+
+// extractVersionFromBinary attempts to extract version information from the connector library
+func extractVersionFromBinary(libPath string) string {
+	// Check if file exists
+	if _, err := os.Stat(libPath); os.IsNotExist(err) {
+		return ""
+	}
+
+	// Use strings command to extract version information
+	cmd := exec.Command("strings", libPath)
+	output, err := cmd.Output()
+	if err != nil {
+		return ""
+	}
+
+	// Look for RTICONNECTOR_BUILD pattern in the output
+	lines := strings.Split(string(output), "\n")
+	for _, line := range lines {
+		if strings.HasPrefix(line, "RTICONNECTOR_BUILD_") {
+			// Extract version from line like "RTICONNECTOR_BUILD_7.6.0.0_20250912T000000Z_RTI_REL"
+			// Remove the prefix and split by underscore
+			withoutPrefix := strings.TrimPrefix(line, "RTICONNECTOR_BUILD_")
+			parts := strings.Split(withoutPrefix, "_")
+			if len(parts) >= 1 {
+				version := parts[0] // This should be the version number like "7.6.0.0"
+				return fmt.Sprintf("RTI Connext DDS %s", version)
+			}
+		}
+	}
+
+	return ""
+}
+
 func downloadLibraries(version, dest string, force bool) error {
-	preferred, fallback := getPlatformWithFallback()
+	platform := getPlatform()
 	libDir := filepath.Join(dest, "rticonnextdds-connector")
 
 	// Check if libraries already exist
@@ -265,11 +310,7 @@ func downloadLibraries(version, dest string, force bool) error {
 	}
 
 	fmt.Printf("🌐 Downloading RTI Connector %s...\n", version)
-	fmt.Printf("📱 Target platform: %s", preferred)
-	if fallback != "" {
-		fmt.Printf(" (fallback available: %s)", fallback)
-	}
-	fmt.Printf("\n")
+	fmt.Printf("📱 Target platform: %s\n", platform)
 
 	// Get the actual download URL from GitHub API
 	downloadURL, archiveName, err := getDownloadURL(version)
@@ -373,17 +414,8 @@ func extractZip(src, dest, connectorDir string) error {
 }
 
 func showSetupInstructions(dest string) {
-	preferred, fallback := getPlatformWithFallback()
-	libPath := filepath.Join(dest, "rticonnextdds-connector", "lib", preferred)
-
-	// Check if preferred platform exists, otherwise use fallback
-	if _, err := os.Stat(libPath); os.IsNotExist(err) && fallback != "" {
-		fallbackPath := filepath.Join(dest, "rticonnextdds-connector", "lib", fallback)
-		if _, err := os.Stat(fallbackPath); err == nil {
-			libPath = fallbackPath
-			fmt.Printf("ℹ️  Using %s libraries (fallback for %s)\n\n", fallback, preferred)
-		}
-	}
+	platform := getPlatform()
+	libPath := filepath.Join(dest, "rticonnextdds-connector", "lib", platform)
 
 	fmt.Println("🔧 Setup Instructions:")
 	fmt.Println("Add the following to your environment:")
