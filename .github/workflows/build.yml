@@ -213,5 +213,8 @@ jobs:
         echo "=== Memory Usage Analysis ==="
         echo "Measuring RTI Connector memory consumption..."
         
+        # Set library path for Linux
+        export LD_LIBRARY_PATH="./rticonnextdds-connector/lib/linux-x64:$LD_LIBRARY_PATH"
+        
         # Run single iteration to measure baseline memory usage
         MEMTEST_ITERATIONS=1 go test -v -run=TestMemoryUsage

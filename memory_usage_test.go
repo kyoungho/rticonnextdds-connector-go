@@ -1,7 +1,6 @@
 package rti
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 	"runtime"
@@ -53,7 +52,7 @@ func TestMemoryUsage(t *testing.T) {
 	t.Logf("  Initial Go heap: %d bytes (%.2f MB)", m1.HeapAlloc, float64(m1.HeapAlloc)/1024/1024)
 
 	for i := 0; i < iterations; i++ {
-		runGoGetExample(t, i)
+		runShapeExample(t, i)
 
 		// Sample memory after each iteration
 		if iterations > 1 && (i+1)%max(1, iterations/5) == 0 {
@@ -105,31 +104,33 @@ func max(a, b int) int {
 	return b
 }
 
-func runGoGetExample(t *testing.T, iteration int) {
-	// Same XML config as the original example
+func runShapeExample(t *testing.T, iteration int) {
+	// Use the same XML config as the main README example
 	xmlConfig := `str://"<dds>
   <qos_library name="QosLibrary">
     <qos_profile name="DefaultProfile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true"/>
   </qos_library>
   
   <types>
-    <struct name="TestType">
-      <member name="message" type="string"/>
-      <member name="count" type="long"/>
+    <struct name="ShapeType">
+      <member name="color" type="string" key="true"/>
+      <member name="x" type="long"/>
+      <member name="y" type="long"/>
+      <member name="shapesize" type="long"/>
     </struct>
   </types>
   
   <domain_library name="MyDomainLibrary">
     <domain name="MyDomain" domain_id="0">
-      <register_type name="TestType" type_ref="TestType"/>
-      <topic name="TestTopic" register_type_ref="TestType"/>
+      <register_type name="ShapeType" type_ref="ShapeType"/>
+      <topic name="Square" register_type_ref="ShapeType"/>
     </domain>
   </domain_library>
   
   <domain_participant_library name="MyParticipantLibrary">
     <domain_participant name="Zero" domain_ref="MyDomainLibrary::MyDomain">
       <publisher name="MyPublisher">
-        <data_writer name="MyWriter" topic_ref="TestTopic"/>
+        <data_writer name="MySquareWriter" topic_ref="Square"/>
       </publisher>
     </domain_participant>
   </domain_participant_library>
@@ -142,15 +143,17 @@ func runGoGetExample(t *testing.T, iteration int) {
 	}
 	defer connector.Delete()
 
-	// Get output (writer) and publish a simple message
-	output, err := connector.GetOutput("MyPublisher::MyWriter")
+	// Get output (writer) and publish a shape sample
+	output, err := connector.GetOutput("MyPublisher::MySquareWriter")
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to get output: %v", iteration, err)
 	}
 
-	// Publish test message
-	output.Instance.SetString("message", fmt.Sprintf("Hello from iteration %d!", iteration))
-	output.Instance.SetInt("count", iteration)
+	// Publish shape data (same as README example)
+	output.Instance.SetString("color", "BLUE")
+	output.Instance.SetInt("x", iteration*10)
+	output.Instance.SetInt("y", iteration*20)
+	output.Instance.SetInt("shapesize", 30)
 	err = output.Write()
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to write: %v", iteration, err)
@@ -161,7 +164,7 @@ func runGoGetExample(t *testing.T, iteration int) {
 	}
 }
 
-// BenchmarkConnectorMemory provides benchmark-based memory analysis
+// BenchmarkConnectorMemory provides benchmark-based memory analysis using Shape example
 func BenchmarkConnectorMemory(b *testing.B) {
 	xmlConfig := `str://"<dds>
   <qos_library name="QosLibrary">
@@ -169,23 +172,25 @@ func BenchmarkConnectorMemory(b *testing.B) {
   </qos_library>
   
   <types>
-    <struct name="TestType">
-      <member name="message" type="string"/>
-      <member name="count" type="long"/>
+    <struct name="ShapeType">
+      <member name="color" type="string" key="true"/>
+      <member name="x" type="long"/>
+      <member name="y" type="long"/>
+      <member name="shapesize" type="long"/>
     </struct>
   </types>
   
   <domain_library name="MyDomainLibrary">
     <domain name="MyDomain" domain_id="0">
-      <register_type name="TestType" type_ref="TestType"/>
-      <topic name="TestTopic" register_type_ref="TestType"/>
+      <register_type name="ShapeType" type_ref="ShapeType"/>
+      <topic name="Square" register_type_ref="ShapeType"/>
     </domain>
   </domain_library>
   
   <domain_participant_library name="MyParticipantLibrary">
     <domain_participant name="Zero" domain_ref="MyDomainLibrary::MyDomain">
       <publisher name="MyPublisher">
-        <data_writer name="MyWriter" topic_ref="TestTopic"/>
+        <data_writer name="MySquareWriter" topic_ref="Square"/>
       </publisher>
     </domain_participant>
   </domain_participant_library>
@@ -198,16 +203,18 @@ func BenchmarkConnectorMemory(b *testing.B) {
 			b.Fatalf("Failed to create connector: %v", err)
 		}
 
-		output, err := connector.GetOutput("MyPublisher::MyWriter")
+		output, err := connector.GetOutput("MyPublisher::MySquareWriter")
 		if err != nil {
 			connector.Delete()
 			b.Fatalf("Failed to get output: %v", err)
 		}
 
-		output.Instance.SetString("message", "Benchmark message")
-		output.Instance.SetInt("count", i)
+		output.Instance.SetString("color", "BLUE")
+		output.Instance.SetInt("x", i*10)
+		output.Instance.SetInt("y", i*20)
+		output.Instance.SetInt("shapesize", 30)
 		output.Write()
-
+		
 		connector.Delete()
 	}
 }
