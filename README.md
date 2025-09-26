@@ -92,7 +92,7 @@ $env:PATH = "$(pwd)\rticonnextdds-connector\lib\win-x64;$env:PATH"
   
   <types>
     <struct name="ShapeType">
-      <member name="color" type="string" key="true"/>
+      <member name="color" type="string" key="true" stringMaxLength="128"/>
       <member name="x" type="long"/>
       <member name="y" type="long"/>
       <member name="shapesize" type="long"/>

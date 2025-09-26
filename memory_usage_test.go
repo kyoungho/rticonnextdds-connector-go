@@ -3,6 +3,7 @@ package rti
 import (
 	"os"
 	"os/exec"
+	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -25,6 +26,13 @@ func getProcessMemory() (int64, error) {
 	}
 
 	return rssKB * 1024, nil // Convert KB to bytes
+}
+
+// newMemoryTestConnector creates a connector using ShapeType (like README example)
+func newMemoryTestConnector() (*Connector, error) {
+	_, curPath, _, _ := runtime.Caller(0)
+	xmlPath := path.Join(path.Dir(curPath), "./test/xml/MemoryTestShape.xml")
+	return NewConnector("MyParticipantLibrary::Zero", xmlPath)
 }
 
 // TestMemoryUsage tests RTI Connector with comprehensive memory profiling
@@ -105,23 +113,25 @@ func max(a, b int) int {
 }
 
 func runConnectorExample(t *testing.T, iteration int) {
-	// Use existing test configuration for reliability
-	connector, err := newTestConnector()
+	// Use ShapeType configuration like in the main README example
+	// This provides realistic memory usage measurements for the documented API
+	connector, err := newMemoryTestConnector()
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to create connector: %v", iteration, err)
 	}
 	defer connector.Delete()
 
-	// Get output (writer) and publish test data
-	output, err := newTestOutput(connector)
+	// Get output (writer) and publish shape data
+	output, err := connector.GetOutput("MyPublisher::MySquareWriter")
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to get output: %v", iteration, err)
 	}
 
-	// Publish test data using existing TestType
-	output.Instance.SetString("st", "MemoryTest")
-	output.Instance.SetInt32("l", int32(iteration*10))
-	output.Instance.SetFloat32("f", float32(iteration)+0.5)
+	// Publish shape data (same as README example)
+	output.Instance.SetString("color", "BLUE")
+	output.Instance.SetInt("x", iteration*10)
+	output.Instance.SetInt("y", iteration*20)
+	output.Instance.SetInt("shapesize", 30)
 	err = output.Write()
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to write: %v", iteration, err)
@@ -132,24 +142,25 @@ func runConnectorExample(t *testing.T, iteration int) {
 	}
 }
 
-// BenchmarkConnectorMemory provides benchmark-based memory analysis
+// BenchmarkConnectorMemory provides benchmark-based memory analysis using ShapeType
 func BenchmarkConnectorMemory(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		connector, err := newTestConnector()
+		connector, err := newMemoryTestConnector()
 		if err != nil {
 			b.Fatalf("Failed to create connector: %v", err)
 		}
 
-		output, err := newTestOutput(connector)
+		output, err := connector.GetOutput("MyPublisher::MySquareWriter")
 		if err != nil {
 			connector.Delete()
 			b.Fatalf("Failed to get output: %v", err)
 		}
 
-		output.Instance.SetString("st", "BenchmarkTest")
-		output.Instance.SetInt32("l", int32(i*10))
-		output.Instance.SetFloat32("f", float32(i)+0.5)
+		output.Instance.SetString("color", "BLUE")
+		output.Instance.SetInt("x", i*10)
+		output.Instance.SetInt("y", i*20)
+		output.Instance.SetInt("shapesize", 30)
 		output.Write()
 
 		connector.Delete()
