@@ -1,18 +1,6 @@
-<?xml version="1.0"?>
-<dds xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:noNamespaceSchemaLocation="http://community.rti.com/schema/5.1.0/rti_dds_profiles.xsd" version="5.1.0">
-
+<dds>
   <qos_library name="QosLibrary">
-    <qos_profile name="DefaultProfile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true">
-      <participant_qos>
-        <discovery>
-          <initial_peers>
-            <element>shmem://</element>
-          </initial_peers>
-          <multicast_receive_addresses/>
-        </discovery>
-      </participant_qos>
-    </qos_profile>
+    <qos_profile name="DefaultProfile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true"/>
   </qos_library>
   
   <types>
@@ -26,16 +14,19 @@
   
   <domain_library name="MyDomainLibrary">
     <domain name="MyDomain" domain_id="0">
-      <register_type name="ShapeType" type_ref="ShapeType" kind="dynamicData"/>
+      <register_type name="ShapeType" type_ref="ShapeType"/>
       <topic name="Square" register_type_ref="ShapeType"/>
     </domain>
   </domain_library>
   
-  <participant_library name="MyParticipantLibrary">
+  <domain_participant_library name="MyParticipantLibrary">
     <domain_participant name="Zero" domain_ref="MyDomainLibrary::MyDomain">
       <publisher name="MyPublisher">
         <data_writer name="MySquareWriter" topic_ref="Square"/>
       </publisher>
+      <subscriber name="MySubscriber">
+        <data_reader name="MySquareReader" topic_ref="Square"/>
+      </subscriber>
     </domain_participant>
-  </participant_library>
+  </domain_participant_library>
 </dds>
