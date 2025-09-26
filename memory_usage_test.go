@@ -52,7 +52,7 @@ func TestMemoryUsage(t *testing.T) {
 	t.Logf("  Initial Go heap: %d bytes (%.2f MB)", m1.HeapAlloc, float64(m1.HeapAlloc)/1024/1024)
 
 	for i := 0; i < iterations; i++ {
-		runShapeExample(t, i)
+		runConnectorExample(t, i)
 
 		// Sample memory after each iteration
 		if iterations > 1 && (i+1)%max(1, iterations/5) == 0 {
@@ -104,56 +104,24 @@ func max(a, b int) int {
 	return b
 }
 
-func runShapeExample(t *testing.T, iteration int) {
-	// Use the same XML config as the main README example
-	xmlConfig := `str://"<dds>
-  <qos_library name="QosLibrary">
-    <qos_profile name="DefaultProfile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true"/>
-  </qos_library>
-  
-  <types>
-    <struct name="ShapeType">
-      <member name="color" type="string" key="true"/>
-      <member name="x" type="long"/>
-      <member name="y" type="long"/>
-      <member name="shapesize" type="long"/>
-    </struct>
-  </types>
-  
-  <domain_library name="MyDomainLibrary">
-    <domain name="MyDomain" domain_id="0">
-      <register_type name="ShapeType" type_ref="ShapeType"/>
-      <topic name="Square" register_type_ref="ShapeType"/>
-    </domain>
-  </domain_library>
-  
-  <domain_participant_library name="MyParticipantLibrary">
-    <domain_participant name="Zero" domain_ref="MyDomainLibrary::MyDomain">
-      <publisher name="MyPublisher">
-        <data_writer name="MySquareWriter" topic_ref="Square"/>
-      </publisher>
-    </domain_participant>
-  </domain_participant_library>
-</dds>"`
-
-	// Create connector from XML string
-	connector, err := NewConnector("MyParticipantLibrary::Zero", xmlConfig)
+func runConnectorExample(t *testing.T, iteration int) {
+	// Use existing test configuration for reliability
+	connector, err := newTestConnector()
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to create connector: %v", iteration, err)
 	}
 	defer connector.Delete()
 
-	// Get output (writer) and publish a shape sample
-	output, err := connector.GetOutput("MyPublisher::MySquareWriter")
+	// Get output (writer) and publish test data
+	output, err := newTestOutput(connector)
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to get output: %v", iteration, err)
 	}
 
-	// Publish shape data (same as README example)
-	output.Instance.SetString("color", "BLUE")
-	output.Instance.SetInt("x", iteration*10)
-	output.Instance.SetInt("y", iteration*20)
-	output.Instance.SetInt("shapesize", 30)
+	// Publish test data using existing TestType
+	output.Instance.SetString("st", "MemoryTest")
+	output.Instance.SetInt32("l", int32(iteration*10))
+	output.Instance.SetFloat32("f", float32(iteration)+0.5)
 	err = output.Write()
 	if err != nil {
 		t.Fatalf("Iteration %d: Failed to write: %v", iteration, err)
@@ -164,57 +132,26 @@ func runShapeExample(t *testing.T, iteration int) {
 	}
 }
 
-// BenchmarkConnectorMemory provides benchmark-based memory analysis using Shape example
+// BenchmarkConnectorMemory provides benchmark-based memory analysis
 func BenchmarkConnectorMemory(b *testing.B) {
-	xmlConfig := `str://"<dds>
-  <qos_library name="QosLibrary">
-    <qos_profile name="DefaultProfile" base_name="BuiltinQosLibExp::Generic.StrictReliable" is_default_qos="true"/>
-  </qos_library>
-  
-  <types>
-    <struct name="ShapeType">
-      <member name="color" type="string" key="true"/>
-      <member name="x" type="long"/>
-      <member name="y" type="long"/>
-      <member name="shapesize" type="long"/>
-    </struct>
-  </types>
-  
-  <domain_library name="MyDomainLibrary">
-    <domain name="MyDomain" domain_id="0">
-      <register_type name="ShapeType" type_ref="ShapeType"/>
-      <topic name="Square" register_type_ref="ShapeType"/>
-    </domain>
-  </domain_library>
-  
-  <domain_participant_library name="MyParticipantLibrary">
-    <domain_participant name="Zero" domain_ref="MyDomainLibrary::MyDomain">
-      <publisher name="MyPublisher">
-        <data_writer name="MySquareWriter" topic_ref="Square"/>
-      </publisher>
-    </domain_participant>
-  </domain_participant_library>
-</dds>"`
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		connector, err := NewConnector("MyParticipantLibrary::Zero", xmlConfig)
+		connector, err := newTestConnector()
 		if err != nil {
 			b.Fatalf("Failed to create connector: %v", err)
 		}
 
-		output, err := connector.GetOutput("MyPublisher::MySquareWriter")
+		output, err := newTestOutput(connector)
 		if err != nil {
 			connector.Delete()
 			b.Fatalf("Failed to get output: %v", err)
 		}
 
-		output.Instance.SetString("color", "BLUE")
-		output.Instance.SetInt("x", i*10)
-		output.Instance.SetInt("y", i*20)
-		output.Instance.SetInt("shapesize", 30)
+		output.Instance.SetString("st", "BenchmarkTest")
+		output.Instance.SetInt32("l", int32(i*10))
+		output.Instance.SetFloat32("f", float32(i)+0.5)
 		output.Write()
-		
+
 		connector.Delete()
 	}
 }
