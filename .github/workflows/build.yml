@@ -15,12 +15,19 @@ jobs:
           - os: ubuntu-latest
             go-version: '1.21'
             arch: x64
+            connector-version: ''  # Use latest
           - os: windows-latest
             go-version: '1.21'
             arch: x64
+            connector-version: ''  # Use latest
           - os: macos-latest  # Apple Silicon macOS runner (v1.4.0+)
             go-version: '1.21'
             arch: arm64
+            connector-version: ''  # Use latest (v1.4.0+)
+          - os: macos-13  # Intel Mac runner (requires v1.3.1)
+            go-version: '1.21'
+            arch: x64
+            connector-version: 'v1.3.1'  # Last version with osx-x64 support
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -45,7 +52,12 @@ jobs:
 
     - name: Download RTI Connector libraries
       run: |
-        go run ./cmd/download-libs -force
+        if [ -n "${{ matrix.connector-version }}" ]; then
+          go run ./cmd/download-libs -force -version ${{ matrix.connector-version }}
+        else
+          go run ./cmd/download-libs -force
+        fi
+      shell: bash
 
     - name: Verify library installation (Linux)
       if: runner.os == 'Linux'
@@ -65,8 +77,13 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         ls -la rticonnextdds-connector/lib/
-        echo "Library files in osx-arm64:"
-        ls -la rticonnextdds-connector/lib/osx-arm64/ || echo "osx-arm64 directory not found"
+        if [ "${{ matrix.arch }}" = "arm64" ]; then
+          echo "Library files in osx-arm64:"
+          ls -la rticonnextdds-connector/lib/osx-arm64/ || echo "osx-arm64 directory not found"
+        else
+          echo "Library files in osx-x64:"
+          ls -la rticonnextdds-connector/lib/osx-x64/ || echo "osx-x64 directory not found"
+        fi
 
     - name: Install dependencies
       run: |

@@ -363,6 +363,28 @@ func downloadLibraries(version, dest string, force bool) error {
 	}
 
 	fmt.Printf("✅ Libraries installed to: %s\n", libDir)
+
+	// Verify platform-specific libraries exist
+	platformLibDir := filepath.Join(libDir, "lib", platform)
+	if _, err := os.Stat(platformLibDir); os.IsNotExist(err) {
+		// List available platforms for debugging
+		libBase := filepath.Join(libDir, "lib")
+		entries, readErr := os.ReadDir(libBase)
+		if readErr == nil {
+			var availablePlatforms []string
+			for _, e := range entries {
+				if e.IsDir() {
+					availablePlatforms = append(availablePlatforms, e.Name())
+				}
+			}
+			return fmt.Errorf("platform '%s' not found in %s. Available platforms: %v. "+
+				"This version may not support your platform. Try: -version v1.3.1",
+				platform, version, availablePlatforms)
+		}
+		return fmt.Errorf("platform '%s' libraries not found in downloaded archive", platform)
+	}
+
+	fmt.Printf("✅ Platform libraries verified: %s\n", platformLibDir)
 	return nil
 }
 
@@ -399,8 +421,16 @@ func extractZip(src, dest, connectorDir string) error {
 		}
 
 		// Check for ZipSlip vulnerability - ensure path is within the destination tree
-		cleanDest := filepath.Clean(dest)
-		if !strings.HasPrefix(filepath.Clean(path), cleanDest+string(os.PathSeparator)) && filepath.Clean(path) != cleanDest {
+		// Use absolute paths to avoid issues with relative path comparisons
+		absDest, err := filepath.Abs(dest)
+		if err != nil {
+			return fmt.Errorf("getting absolute path for dest: %v", err)
+		}
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("getting absolute path for file: %v", err)
+		}
+		if !strings.HasPrefix(absPath, absDest+string(os.PathSeparator)) && absPath != absDest {
 			continue
 		}
 
