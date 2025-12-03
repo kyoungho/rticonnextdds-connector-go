@@ -84,6 +84,11 @@ func detectPlatform() string {
 			return "linux-x64"
 		case "arm64":
 			return "linux-arm64"
+		case "arm":
+			// linux-arm (32-bit) was removed in v1.4.0
+			fmt.Printf("⚠️  Warning: linux-arm (32-bit) support was removed in v1.4.0\n")
+			fmt.Printf("   Use v1.3.1 or earlier for 32-bit ARM support\n")
+			return "linux-arm"
 		default:
 			fmt.Printf("Unsupported Linux architecture: %s\n", runtime.GOARCH)
 			os.Exit(1)
@@ -91,6 +96,9 @@ func detectPlatform() string {
 	case "darwin":
 		switch runtime.GOARCH {
 		case "amd64":
+			// osx-x64 (Intel Mac) was removed in v1.4.0
+			fmt.Printf("⚠️  Warning: osx-x64 (Intel Mac) support was removed in v1.4.0\n")
+			fmt.Printf("   Use v1.3.1 or earlier for Intel Mac support\n")
 			return "osx-x64"
 		case "arm64":
 			return "osx-arm64"
@@ -368,14 +376,31 @@ func extractZip(src, dest, connectorDir string) error {
 	// Create the rticonnextdds-connector directory
 	os.MkdirAll(connectorDir, 0755)
 
+	// Detect archive structure:
+	// - v1.3.1 and earlier: lib/* (need to prepend connectorDir)
+	// - v1.4.0 and later: rticonnextdds-connector/lib/* (already has prefix)
+	hasConnectorPrefix := false
+	for _, f := range r.File {
+		if strings.HasPrefix(f.Name, "rticonnextdds-connector/") {
+			hasConnectorPrefix = true
+			break
+		}
+	}
+
 	// Extract files
 	for _, f := range r.File {
-		// Map the extracted path to include the connector directory
-		// The ZIP contains lib/* which we want to extract to rticonnextdds-connector/lib/*
-		path := filepath.Join(connectorDir, f.Name)
+		var path string
+		if hasConnectorPrefix {
+			// v1.4.0+: Extract directly to dest, the archive already has rticonnextdds-connector/ prefix
+			path = filepath.Join(dest, f.Name)
+		} else {
+			// v1.3.1 and earlier: Prepend connectorDir to create rticonnextdds-connector/lib/*
+			path = filepath.Join(connectorDir, f.Name)
+		}
 
 		// Check for ZipSlip vulnerability - ensure path is within the destination tree
-		if !strings.HasPrefix(path, filepath.Clean(connectorDir)+string(os.PathSeparator)) {
+		cleanDest := filepath.Clean(dest)
+		if !strings.HasPrefix(filepath.Clean(path), cleanDest+string(os.PathSeparator)) && filepath.Clean(path) != cleanDest {
 			continue
 		}
 

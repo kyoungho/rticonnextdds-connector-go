@@ -63,10 +63,11 @@ go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@late
 
 4. **Set library path (for runtime):**
 ```bash
-# macOS (Apple Silicon/ARM64)
+# macOS (Apple Silicon/ARM64) - v1.4.0+
 export DYLD_LIBRARY_PATH=$(pwd)/rticonnextdds-connector/lib/osx-arm64:$DYLD_LIBRARY_PATH
 
-# macOS (Intel/x86_64)  
+# macOS (Intel/x86_64) - requires v1.3.1
+# go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest -version v1.3.1
 export DYLD_LIBRARY_PATH=$(pwd)/rticonnextdds-connector/lib/osx-x64:$DYLD_LIBRARY_PATH
 
 # Linux  
@@ -76,7 +77,7 @@ export LD_LIBRARY_PATH=$(pwd)/rticonnextdds-connector/lib/linux-x64:$LD_LIBRARY_
 $env:PATH = "$(pwd)\rticonnextdds-connector\lib\win-x64;$env:PATH"
 ```
 
-> **💡 macOS Users**: Use `osx-arm64` for Apple Silicon Macs (M1/M2/M3) and `osx-x64` for Intel Macs. You can check your architecture with `uname -m` (arm64 = Apple Silicon, x86_64 = Intel).
+> **💡 macOS Users**: Use `osx-arm64` for Apple Silicon Macs (M1/M2/M3). Intel Mac support (`osx-x64`) requires v1.3.1. Check your architecture with `uname -m` (arm64 = Apple Silicon, x86_64 = Intel).
 
 > **💡 New to RTI Connector Go?** Try the [go-get-example](examples/go-get-example/) first - it provides a complete walkthrough of this installation process with a simple working example.
 
@@ -259,15 +260,15 @@ Explore our comprehensive examples to learn different patterns and use cases:
 
 RTI Connector supports the following platforms with automated CI testing:
 
-| Platform | Architecture | CI Status |
-|----------|-------------|-----------|
-| **Linux** | x86_64 | ✅ Tested on Ubuntu 22.04 (ubuntu-latest) |
-| **Linux** | ARM64 | ✅ Supported (libraries included) |
-| **macOS** | Apple Silicon (ARM64) | ✅ Supported  |
-| **macOS** | Intel (x86_64) | ✅ Tested on macOS 13 (macos-13) |
-| **Windows** | x86_64 | ✅ Tested on Windows Server 2022 (windows-latest) |
+| Platform | Architecture | CI Status | Notes |
+|----------|-------------|-----------|-------|
+| **Linux** | x86_64 | ✅ Tested on Ubuntu 22.04 (ubuntu-latest) | |
+| **Linux** | ARM64 | ✅ Supported (libraries included) | |
+| **macOS** | Apple Silicon (ARM64) | ✅ Supported | v1.4.0+ |
+| **macOS** | Intel (x86_64) | ⚠️ Use v1.3.1 | Removed in v1.4.0 |
+| **Windows** | x86_64 | ✅ Tested on Windows Server 2022 (windows-latest) | |
 
-> 📝 **Note**: Linux x64, macOS x64, and Windows x64 are continuously tested via GitHub Actions CI. If you need support for additional architectures, please contact your RTI account manager or [sales@rti.com](mailto:sales@rti.com).
+> 📝 **Note**: Starting with v1.4.0, Intel Mac (`osx-x64`) and 32-bit ARM Linux (`linux-arm`) support have been removed. If you need these platforms, use v1.3.1: `go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest -version v1.3.1`
 
 ### Version Information
 

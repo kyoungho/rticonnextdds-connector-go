@@ -108,15 +108,15 @@ your-project/
 ├── rticonnextdds-connector/
 │   ├── lib/
 │   │   ├── linux-x64/          # Intel/AMD Linux
-│   │   ├── linux-arm64/        # ARM Linux
-│   │   ├── osx-x64/           # Intel macOS
-│   │   ├── osx-arm64/         # Apple Silicon macOS
-│   │   └── win-x64/           # Windows x64
-│   ├── include/               # Header files
-│   └── examples/              # C/Lua examples
+│   │   ├── linux-arm64/        # ARM64 Linux
+│   │   ├── osx-arm64/          # Apple Silicon macOS (v1.4.0+)
+│   │   └── win-x64/            # Windows x64
+│   └── include/                # Header files
 ├── main.go
 └── go.mod
 ```
+
+> **Note**: v1.3.1 and earlier also included `osx-x64/` (Intel macOS) and `linux-arm/` (32-bit ARM Linux).
 
 ## Best Practices
 
@@ -136,6 +136,10 @@ export LD_LIBRARY_PATH=$(pwd)/rticonnextdds-connector/lib/linux-x64:$LD_LIBRARY_
 For reproducible builds, pin to specific versions:
 
 ```bash
+# Latest version (v1.4.0+)
+go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest
+
+# For Intel Mac or 32-bit ARM Linux support, use v1.3.1
 go run github.com/rticommunity/rticonnextdds-connector-go/cmd/download-libs@latest -version v1.3.1
 ```
 

@@ -18,9 +18,9 @@ jobs:
           - os: windows-latest
             go-version: '1.21'
             arch: x64
-          - os: macos-13  # Intel-based macOS runner
+          - os: macos-latest  # Apple Silicon macOS runner (v1.4.0+)
             go-version: '1.21'
-            arch: x64
+            arch: arm64
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -65,8 +65,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         ls -la rticonnextdds-connector/lib/
-        echo "Library files in osx-x64:"
-        ls -la rticonnextdds-connector/lib/osx-x64/ || echo "osx-x64 directory not found"
+        echo "Library files in osx-arm64:"
+        ls -la rticonnextdds-connector/lib/osx-arm64/ || echo "osx-arm64 directory not found"
 
     - name: Install dependencies
       run: |
