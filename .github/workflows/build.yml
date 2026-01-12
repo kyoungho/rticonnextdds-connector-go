@@ -51,6 +51,8 @@ jobs:
         choco install mingw
 
     - name: Download RTI Connector libraries
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         if [ -n "${{ matrix.connector-version }}" ]; then
           go run ./cmd/download-libs -force -version ${{ matrix.connector-version }}
@@ -222,6 +224,8 @@ jobs:
         sudo apt-get install -y build-essential curl unzip bc
 
     - name: Download RTI Connector libraries
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       run: |
         go run ./cmd/download-libs -force
 

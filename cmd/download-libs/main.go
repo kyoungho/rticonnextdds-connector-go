@@ -120,14 +120,50 @@ func getPlatform() string {
 	return detectPlatform()
 }
 
+// createHTTPClient creates an HTTP client with optional GitHub token authentication
+func createHTTPClient() *http.Client {
+	return &http.Client{}
+}
+
+// createRequest creates an HTTP request with optional GitHub token authentication
+func createRequest(method, url string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add GitHub token if available
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return req, nil
+}
+
 func listVersions() {
 	fmt.Println("📋 Available Versions:")
-	resp, err := http.Get(baseURL + "/releases")
+
+	req, err := createRequest("GET", baseURL+"/releases")
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error fetching versions: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: API request failed with status %s\n", resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			fmt.Println("Hint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable.")
+		}
+		return
+	}
 
 	var releases []Release
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
@@ -144,14 +180,24 @@ func listVersions() {
 }
 
 func getLatestVersion() (string, error) {
-	resp, err := http.Get(baseURL + "/releases/latest")
+	req, err := createRequest("GET", baseURL+"/releases/latest")
+	if err != nil {
+		return "", err
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API request failed: %s", resp.Status)
+		errMsg := fmt.Sprintf("API request failed: %s", resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			errMsg += "\nHint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable."
+		}
+		return "", fmt.Errorf(errMsg)
 	}
 
 	var release Release
@@ -168,14 +214,25 @@ func getLatestVersion() (string, error) {
 
 func getDownloadURL(version string) (string, string, error) {
 	releaseURL := fmt.Sprintf("%s/releases/tags/%s", baseURL, version)
-	resp, err := http.Get(releaseURL)
+
+	req, err := createRequest("GET", releaseURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("release %s not found", version)
+		errMsg := fmt.Sprintf("release %s not found (status: %s)", version, resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			errMsg += "\nHint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable."
+		}
+		return "", "", fmt.Errorf(errMsg)
 	}
 
 	var release Release
