@@ -66,7 +66,7 @@ type Input struct {
 //	    log.Printf("Read error: %v", err)
 //	    return
 //	}
-//	
+//
 //	length, _ := input.Samples.GetLength()
 //	for i := 0; i < length; i++ {
 //	    color, _ := input.Samples.GetString(i, "color")
@@ -138,4 +138,50 @@ func (input *Input) GetMatchedPublications() (string, error) {
 	C.RTI_Connector_free_string(jsonCStr)
 
 	return jsonGoStr, nil
+}
+
+// ReturnLoan returns any loaned samples back to the DDS middleware.
+//
+// After calling Read() or Take(), samples are "loaned" from the middleware to the
+// application. This method explicitly returns those loans, freeing the associated
+// resources in the DDS DataReader's receive queue.
+//
+// Calling this method is particularly important in applications that:
+//   - Receive large volumes of data
+//   - Keep samples for extended periods between Read/Take operations
+//   - Need to manage memory usage explicitly
+//
+// Note that Take() removes samples from the queue (so they're implicitly returned),
+// but Read() keeps samples accessible until they're explicitly returned.
+//
+// Returns:
+//   - error: Non-nil if the operation fails
+//
+// Example:
+//
+//	err := input.Read()
+//	if err != nil {
+//	    log.Printf("Read failed: %v", err)
+//	    return
+//	}
+//
+//	// Process samples
+//	length, _ := input.Samples.GetLength()
+//	for i := 0; i < length; i++ {
+//	    data, _ := input.Samples.GetJSON(i)
+//	    processSample(data)
+//	}
+//
+//	// Return loans to free resources
+//	err = input.ReturnLoan()
+//	if err != nil {
+//	    log.Printf("ReturnLoan failed: %v", err)
+//	}
+func (input *Input) ReturnLoan() error {
+	if input == nil {
+		return errors.New("input is null")
+	}
+
+	retcode := int(C.RTI_Connector_return_loan(unsafe.Pointer(input.connector.native), input.nameCStr))
+	return checkRetcode(retcode)
 }

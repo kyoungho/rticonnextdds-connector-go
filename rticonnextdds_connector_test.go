@@ -411,3 +411,160 @@ func TestSimpleMatching(t *testing.T) {
 	assert.Nil(t, err)
 	assert.NotEmpty(t, matches)
 }
+
+// TestWaitForAcknowledgments tests the Output.WaitForAcknowledgments method
+func TestWaitForAcknowledgments(t *testing.T) {
+	connector, err := newTestConnector()
+	assert.Nil(t, err)
+	defer connector.Delete()
+
+	output, err := newTestOutput(connector)
+	assert.Nil(t, err)
+
+	_, err = newTestInput(connector)
+	assert.Nil(t, err)
+
+	// Wait for the input and output to discover each other
+	change, err := output.WaitForSubscriptions(5000)
+	assert.Nil(t, err)
+	assert.GreaterOrEqual(t, change, 1)
+
+	// Write some data
+	err = output.Instance.SetString("st", "test acknowledgment")
+	assert.Nil(t, err)
+	err = output.Write()
+	assert.Nil(t, err)
+
+	// Wait for acknowledgments with a reasonable timeout
+	err = output.WaitForAcknowledgments(5000)
+	assert.Nil(t, err)
+}
+
+// TestWaitForAcknowledgmentsTimeout tests timeout behavior
+func TestWaitForAcknowledgmentsTimeout(t *testing.T) {
+	connector, err := newTestConnector()
+	assert.Nil(t, err)
+	defer connector.Delete()
+
+	output, err := newTestOutput(connector)
+	assert.Nil(t, err)
+
+	// Write data without any matched subscribers
+	err = output.Instance.SetString("st", "test timeout")
+	assert.Nil(t, err)
+	err = output.Write()
+	assert.Nil(t, err)
+
+	// Wait for acknowledgments with a short timeout
+	// With RELIABLE QoS and no matched subscribers, this should timeout
+	// or succeed immediately depending on the QoS settings
+	err = output.WaitForAcknowledgments(100)
+	// Either timeout or success is acceptable behavior
+	if err != nil {
+		// If it times out, verify it's a timeout error
+		assert.Equal(t, ErrTimeout, err)
+	}
+}
+
+// TestReturnLoan tests the Input.ReturnLoan method
+func TestReturnLoan(t *testing.T) {
+	connector, err := newTestConnector()
+	assert.Nil(t, err)
+	defer connector.Delete()
+
+	output, err := newTestOutput(connector)
+	assert.Nil(t, err)
+
+	input, err := newTestInput(connector)
+	assert.Nil(t, err)
+
+	// Wait for discovery
+	change, err := output.WaitForSubscriptions(5000)
+	assert.Nil(t, err)
+	assert.GreaterOrEqual(t, change, 1)
+
+	// Write some data
+	err = output.Instance.SetString("st", "test return loan")
+	assert.Nil(t, err)
+	err = output.Write()
+	assert.Nil(t, err)
+
+	// Wait for data to arrive
+	err = connector.Wait(5000)
+	assert.Nil(t, err)
+
+	// Read data (this loans samples from DDS)
+	err = input.Read()
+	assert.Nil(t, err)
+
+	// Verify we got samples
+	length, err := input.Samples.GetLength()
+	assert.Nil(t, err)
+	assert.Greater(t, length, 0)
+
+	// Return the loan
+	err = input.ReturnLoan()
+	assert.Nil(t, err)
+
+	// After returning the loan, samples should no longer be accessible
+	// Reading again should reset the samples
+	length, err = input.Samples.GetLength()
+	assert.Nil(t, err)
+	// Length should be 0 after return loan (no new samples)
+	assert.Equal(t, 0, length)
+}
+
+// TestReturnLoanAfterTake tests that ReturnLoan works after Take
+func TestReturnLoanAfterTake(t *testing.T) {
+	connector, err := newTestConnector()
+	assert.Nil(t, err)
+	defer connector.Delete()
+
+	output, err := newTestOutput(connector)
+	assert.Nil(t, err)
+
+	input, err := newTestInput(connector)
+	assert.Nil(t, err)
+
+	// Wait for discovery
+	change, err := output.WaitForSubscriptions(5000)
+	assert.Nil(t, err)
+	assert.GreaterOrEqual(t, change, 1)
+
+	// Write some data
+	err = output.Instance.SetString("st", "test return loan after take")
+	assert.Nil(t, err)
+	err = output.Write()
+	assert.Nil(t, err)
+
+	// Wait for data
+	err = connector.Wait(5000)
+	assert.Nil(t, err)
+
+	// Take data (removes samples from queue)
+	err = input.Take()
+	assert.Nil(t, err)
+
+	// Verify we got samples
+	length, err := input.Samples.GetLength()
+	assert.Nil(t, err)
+	assert.Greater(t, length, 0)
+
+	// Return the loan - should work even after Take
+	err = input.ReturnLoan()
+	assert.Nil(t, err)
+}
+
+// TestReturnLoanWithoutRead tests ReturnLoan without prior Read/Take
+func TestReturnLoanWithoutRead(t *testing.T) {
+	connector, err := newTestConnector()
+	assert.Nil(t, err)
+	defer connector.Delete()
+
+	input, err := newTestInput(connector)
+	assert.Nil(t, err)
+
+	// Calling ReturnLoan without Read/Take should not error
+	err = input.ReturnLoan()
+	assert.Nil(t, err)
+}
