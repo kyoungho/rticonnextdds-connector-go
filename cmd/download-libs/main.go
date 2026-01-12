@@ -51,6 +51,16 @@ func main() {
 		return
 	}
 
+	// Check if libraries already exist (unless force is specified)
+	libDir := filepath.Join(*destination, "rticonnextdds-connector")
+	if !*force {
+		if _, err := os.Stat(libDir); err == nil {
+			fmt.Printf("✅ Libraries already exist at %s\n", libDir)
+			fmt.Printf("Use -force flag to overwrite, or -current to check installation\n")
+			return
+		}
+	}
+
 	targetVersion := *version
 	if targetVersion == "" {
 		var err error
@@ -364,15 +374,6 @@ func extractVersionFromBinary(libPath string) string {
 func downloadLibraries(version, dest string, force bool) error {
 	platform := getPlatform()
 	libDir := filepath.Join(dest, "rticonnextdds-connector")
-
-	// Check if libraries already exist
-	if !force {
-		if _, err := os.Stat(libDir); err == nil {
-			fmt.Printf("⚠️  Libraries already exist at %s\n", libDir)
-			fmt.Printf("Use -force flag to overwrite, or -current to check installation\n")
-			return nil
-		}
-	}
 
 	fmt.Printf("🌐 Downloading RTI Connector %s...\n", version)
 	fmt.Printf("📱 Target platform: %s\n", platform)
