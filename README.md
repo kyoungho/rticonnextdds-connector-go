@@ -264,7 +264,7 @@ RTI Connector supports the following platforms with automated CI testing:
 |----------|-------------|-----------|-------|
 | **Linux** | x86_64 | ✅ Tested on Ubuntu 22.04 (ubuntu-latest) | |
 | **Linux** | ARM64 | ✅ Supported (libraries included) | |
-| **macOS** | Apple Silicon (ARM64) | ✅ Supported | v1.4.0+ |
+| **macOS** | Apple Silicon (ARM64) | ✅ Tested on macos-latest | v1.4.0+ |
 | **macOS** | Intel (x86_64) | ⚠️ Use v1.3.1 | Removed in v1.4.0 |
 | **Windows** | x86_64 | ✅ Tested on Windows Server 2022 (windows-latest) | |
 

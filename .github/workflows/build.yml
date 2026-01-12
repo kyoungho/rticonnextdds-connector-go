@@ -24,10 +24,6 @@ jobs:
             go-version: '1.21'
             arch: arm64
             connector-version: ''  # Use latest (v1.4.0+)
-          - os: macos-13  # Intel Mac runner (requires v1.3.1)
-            go-version: '1.21'
-            arch: x64
-            connector-version: 'v1.3.1'  # Last version with osx-x64 support
     runs-on: ${{ matrix.os }}
 
     steps:
@@ -79,13 +75,8 @@ jobs:
       if: runner.os == 'macOS'
       run: |
         ls -la rticonnextdds-connector/lib/
-        if [ "${{ matrix.arch }}" = "arm64" ]; then
-          echo "Library files in osx-arm64:"
-          ls -la rticonnextdds-connector/lib/osx-arm64/ || echo "osx-arm64 directory not found"
-        else
-          echo "Library files in osx-x64:"
-          ls -la rticonnextdds-connector/lib/osx-x64/ || echo "osx-x64 directory not found"
-        fi
+        echo "Library files in osx-arm64:"
+        ls -la rticonnextdds-connector/lib/osx-arm64/ || echo "osx-arm64 directory not found"
 
     - name: Install dependencies
       run: |
