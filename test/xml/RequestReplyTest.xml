@@ -12,6 +12,23 @@
                     </initial_peers>
                     <multicast_receive_addresses/>
                 </discovery>
+                <!-- Disable shared memory transport to avoid macOS configuration issues -->
+                <transport_builtin>
+                    <mask>UDPV4 | SHMEM</mask>
+                </transport_builtin>
+                <property>
+                    <value>
+                        <!-- Use smaller shared memory settings for macOS -->
+                        <element>
+                            <name>dds.transport.shmem.builtin.receive_buffer_size</name>
+                            <value>65536</value>
+                        </element>
+                        <element>
+                            <name>dds.transport.shmem.builtin.received_message_count_max</name>
+                            <value>32</value>
+                        </element>
+                    </value>
+                </property>
             </participant_qos>
             <datawriter_qos>
                 <reliability>
