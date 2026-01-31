@@ -121,12 +121,13 @@ func (infos *Infos) GetSourceTimestamp(index int) (int64, error) {
 		return 0, err
 	}
 
-	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	// Parse as float64 first to handle scientific notation, then convert to int64
+	tsFloat, err := strconv.ParseFloat(tsStr, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return ts, nil
+	return int64(tsFloat), nil
 }
 
 // GetReceptionTimestamp retrieves the reception timestamp of a sample.
@@ -154,12 +155,13 @@ func (infos *Infos) GetReceptionTimestamp(index int) (int64, error) {
 		return 0, err
 	}
 
-	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	// Parse as float64 first to handle scientific notation, then convert to int64
+	tsFloat, err := strconv.ParseFloat(tsStr, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return ts, nil
+	return int64(tsFloat), nil
 }
 
 // GetIdentity retrieves the identity of the writer that published a sample.
@@ -288,6 +290,10 @@ func (infos *Infos) GetSampleState(index int) (string, error) {
 
 // GetLength is a function to return the length of the
 func (infos *Infos) GetLength() (int, error) {
+	if infos == nil {
+		return 0, errors.New("infos is null")
+	}
+
 	var retVal C.double
 	retcode := int(C.RTI_Connector_get_sample_count(unsafe.Pointer(infos.input.connector.native), infos.input.nameCStr, &retVal))
 	err := checkRetcode(retcode)
@@ -295,6 +301,10 @@ func (infos *Infos) GetLength() (int, error) {
 }
 
 func (infos *Infos) getJSONMember(index int, memberName string) (string, error) {
+	if infos == nil {
+		return "", errors.New("infos is null")
+	}
+
 	memberNameCStr := C.CString(memberName)
 	defer C.free(unsafe.Pointer(memberNameCStr))
 

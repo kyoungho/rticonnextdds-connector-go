@@ -151,6 +151,11 @@ func (connector *Connector) Delete() error {
 		return errors.New("connector is null")
 	}
 
+	// Check if already deleted
+	if connector.native == nil {
+		return nil
+	}
+
 	// Delete memory allocated in C layer
 	for _, input := range connector.Inputs {
 		C.free(unsafe.Pointer(input.nameCStr))
@@ -162,13 +167,28 @@ func (connector *Connector) Delete() error {
 	C.RTI_Connector_delete(connector.native)
 	connector.native = nil
 
+	// Clear the slices to prevent double-free if called again
+	connector.Inputs = nil
+	connector.Outputs = nil
+
+	return nil
+}
+
+// isValid checks if the connector is valid and not deleted
+func (connector *Connector) isValid() error {
+	if connector == nil {
+		return errors.New("connector is null")
+	}
+	if connector.native == nil {
+		return errors.New("connector has been deleted")
+	}
 	return nil
 }
 
 // GetOutput returns an output object
 func (connector *Connector) GetOutput(outputName string) (*Output, error) {
-	if connector == nil {
-		return nil, errors.New("connector is null")
+	if err := connector.isValid(); err != nil {
+		return nil, err
 	}
 
 	return newOutput(connector, outputName)
@@ -176,8 +196,8 @@ func (connector *Connector) GetOutput(outputName string) (*Output, error) {
 
 // GetInput returns an input object
 func (connector *Connector) GetInput(inputName string) (*Input, error) {
-	if connector == nil {
-		return nil, errors.New("connector is null")
+	if err := connector.isValid(); err != nil {
+		return nil, err
 	}
 
 	return newInput(connector, inputName)
@@ -185,8 +205,8 @@ func (connector *Connector) GetInput(inputName string) (*Input, error) {
 
 // Wait is a function to block until data is available on an input
 func (connector *Connector) Wait(timeoutMs int) error {
-	if connector == nil {
-		return errors.New("connector is null")
+	if err := connector.isValid(); err != nil {
+		return err
 	}
 
 	retcode := int(C.RTI_Connector_wait_for_data(unsafe.Pointer(connector.native), C.int(timeoutMs)))
@@ -207,6 +227,8 @@ func newOutput(connector *Connector, outputName string) (*Output, error) {
 
 	output.native = C.RTI_Connector_get_datawriter(unsafe.Pointer(connector.native), output.nameCStr)
 	if output.native == nil {
+		// Free the allocated C string before returning error
+		C.free(unsafe.Pointer(output.nameCStr))
 		return nil, errors.New("invalid Publication::DataWriter name")
 	}
 	output.name = outputName
@@ -227,6 +249,8 @@ func newInput(connector *Connector, inputName string) (*Input, error) {
 
 	input.native = C.RTI_Connector_get_datareader(unsafe.Pointer(connector.native), input.nameCStr)
 	if input.native == nil {
+		// Free the allocated C string before returning error
+		C.free(unsafe.Pointer(input.nameCStr))
 		return nil, errors.New("invalid Subscription::DataReader name")
 	}
 	input.name = inputName

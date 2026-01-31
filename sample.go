@@ -15,6 +15,7 @@ package rti
 import "C"
 import (
 	"encoding/json"
+	"errors"
 	"unsafe"
 )
 
@@ -37,6 +38,10 @@ type Samples struct {
 
 // getNumber is a function to return a number in double from a sample
 func (samples *Samples) getNumber(index int, fieldName string, retVal *C.double) error {
+	if samples == nil {
+		return errors.New("samples is null")
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -57,6 +62,10 @@ func (samples *Samples) getNumber(index int, fieldName string, retVal *C.double)
 //   - int: Number of samples (0 if no samples available)
 //   - error: Non-nil if the operation fails
 func (samples *Samples) GetLength() (int, error) {
+	if samples == nil {
+		return 0, errors.New("samples is null")
+	}
+
 	var retVal C.double
 	retcode := int(C.RTI_Connector_get_sample_count(unsafe.Pointer(samples.input.connector.native), samples.input.nameCStr, &retVal))
 	err := checkRetcode(retcode)
@@ -193,6 +202,10 @@ func (samples *Samples) GetRune(index int, fieldName string) (rune, error) {
 //	    log.Printf("Failed to get enabled status: %v", err)
 //	}
 func (samples *Samples) GetBoolean(index int, fieldName string) (bool, error) {
+	if samples == nil {
+		return false, errors.New("samples is null")
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -221,6 +234,10 @@ func (samples *Samples) GetBoolean(index int, fieldName string) (bool, error) {
 //	    log.Printf("Failed to get color: %v", err)
 //	}
 func (samples *Samples) GetString(index int, fieldName string) (string, error) {
+	if samples == nil {
+		return "", errors.New("samples is null")
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -260,6 +277,10 @@ func (samples *Samples) GetString(index int, fieldName string) (string, error) {
 //	    fmt.Printf("Sample data: %s\n", jsonData)
 //	}
 func (samples *Samples) GetJSON(index int) (string, error) {
+	if samples == nil {
+		return "", errors.New("samples is null")
+	}
+
 	var retValCStr *C.char
 
 	retcode := int(C.RTI_Connector_get_json_sample(unsafe.Pointer(samples.input.connector.native), samples.input.nameCStr, C.int(index+1), &retValCStr))

@@ -39,6 +39,18 @@ type Instance struct {
 	output *Output
 }
 
+/********************
+* Private Functions *
+********************/
+
+// checkInstanceValid checks if the instance and its dependencies are valid
+func (instance *Instance) checkInstanceValid() error {
+	if instance == nil || instance.output == nil || instance.output.connector == nil {
+		return errors.New("instance, output, or connector is null")
+	}
+	return nil
+}
+
 /*******************
 * Public Functions *
 *******************/
@@ -58,6 +70,10 @@ type Instance struct {
 //       log.Printf("Failed to set status: %v", err)
 //   }
 func (instance *Instance) SetUint8(fieldName string, value uint8) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -67,6 +83,10 @@ func (instance *Instance) SetUint8(fieldName string, value uint8) error {
 
 // SetUint16 is a function to set a value of type uint16 into samples
 func (instance *Instance) SetUint16(fieldName string, value uint16) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -76,6 +96,10 @@ func (instance *Instance) SetUint16(fieldName string, value uint16) error {
 
 // SetUint32 is a function to set a value of type uint32 into samples
 func (instance *Instance) SetUint32(fieldName string, value uint32) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -85,6 +109,10 @@ func (instance *Instance) SetUint32(fieldName string, value uint32) error {
 
 // SetUint64 is a function to set a value of type uint64 into samples
 func (instance *Instance) SetUint64(fieldName string, value uint64) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -94,6 +122,10 @@ func (instance *Instance) SetUint64(fieldName string, value uint64) error {
 
 // SetInt8 is a function to set a value of type int8 into samples
 func (instance *Instance) SetInt8(fieldName string, value int8) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -103,6 +135,10 @@ func (instance *Instance) SetInt8(fieldName string, value int8) error {
 
 // SetInt16 is a function to set a value of type int16 into samples
 func (instance *Instance) SetInt16(fieldName string, value int16) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -112,6 +148,10 @@ func (instance *Instance) SetInt16(fieldName string, value int16) error {
 
 // SetInt32 is a function to set a value of type int32 into samples
 func (instance *Instance) SetInt32(fieldName string, value int32) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -121,6 +161,10 @@ func (instance *Instance) SetInt32(fieldName string, value int32) error {
 
 // SetInt64 is a function to set a value of type int64 into samples
 func (instance *Instance) SetInt64(fieldName string, value int64) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -130,6 +174,10 @@ func (instance *Instance) SetInt64(fieldName string, value int64) error {
 
 // SetUint is a function to set a value of type uint into samples
 func (instance *Instance) SetUint(fieldName string, value uint) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -139,6 +187,10 @@ func (instance *Instance) SetUint(fieldName string, value uint) error {
 
 // SetInt is a function to set a value of type int into samples
 func (instance *Instance) SetInt(fieldName string, value int) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -148,6 +200,10 @@ func (instance *Instance) SetInt(fieldName string, value int) error {
 
 // SetFloat32 is a function to set a value of type float32 into samples
 func (instance *Instance) SetFloat32(fieldName string, value float32) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -157,6 +213,10 @@ func (instance *Instance) SetFloat32(fieldName string, value float32) error {
 
 // SetFloat64 is a function to set a value of type float64 into samples
 func (instance *Instance) SetFloat64(fieldName string, value float64) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -199,6 +259,10 @@ func (instance *Instance) SetString(fieldName string, value string) error {
 
 // SetByte is a function to set a byte to a fieldname of the samples
 func (instance *Instance) SetByte(fieldName string, value byte) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -208,6 +272,10 @@ func (instance *Instance) SetByte(fieldName string, value byte) error {
 
 // SetRune is a function to set rune to a fieldname of the samples
 func (instance *Instance) SetRune(fieldName string, value rune) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -230,6 +298,10 @@ func (instance *Instance) SetRune(fieldName string, value rune) error {
 //       log.Printf("Failed to set enabled flag: %v", err)
 //   }
 func (instance *Instance) SetBoolean(fieldName string, value bool) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	fieldNameCStr := C.CString(fieldName)
 	defer C.free(unsafe.Pointer(fieldNameCStr))
 
@@ -259,6 +331,10 @@ func (instance *Instance) SetBoolean(fieldName string, value bool) error {
 //       log.Printf("Failed to set JSON: %v", err)
 //   }
 func (instance *Instance) SetJSON(blob []byte) error {
+	if err := instance.checkInstanceValid(); err != nil {
+		return err
+	}
+
 	jsonCStr := C.CString(string(blob))
 	defer C.free(unsafe.Pointer(jsonCStr))
 
