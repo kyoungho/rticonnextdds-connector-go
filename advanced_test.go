@@ -562,6 +562,23 @@ func TestNullPointerHandling(t *testing.T) {
 
 	err = output.ClearMembers()
 	assert.NotNil(t, err)
+
+	// Test nil Instance
+	var instance *Instance
+	err = instance.SetInt32("field", 1)
+	assert.NotNil(t, err)
+
+	err = instance.SetString("field", "test")
+	assert.NotNil(t, err)
+
+	err = instance.SetBoolean("field", true)
+	assert.NotNil(t, err)
+
+	err = instance.SetJSON([]byte(`{}`))
+	assert.NotNil(t, err)
+
+	err = instance.SetFloat64("field", 3.14)
+	assert.NotNil(t, err)
 }
 
 // TestNegativeIndices tests error handling for negative indices

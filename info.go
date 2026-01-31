@@ -121,12 +121,13 @@ func (infos *Infos) GetSourceTimestamp(index int) (int64, error) {
 		return 0, err
 	}
 
-	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	// Parse as float64 first to handle scientific notation, then convert to int64
+	tsFloat, err := strconv.ParseFloat(tsStr, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return ts, nil
+	return int64(tsFloat), nil
 }
 
 // GetReceptionTimestamp retrieves the reception timestamp of a sample.
@@ -154,12 +155,13 @@ func (infos *Infos) GetReceptionTimestamp(index int) (int64, error) {
 		return 0, err
 	}
 
-	ts, err := strconv.ParseInt(tsStr, 10, 64)
+	// Parse as float64 first to handle scientific notation, then convert to int64
+	tsFloat, err := strconv.ParseFloat(tsStr, 64)
 	if err != nil {
 		return 0, err
 	}
 
-	return ts, nil
+	return int64(tsFloat), nil
 }
 
 // GetIdentity retrieves the identity of the writer that published a sample.
