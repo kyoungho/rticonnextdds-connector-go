@@ -52,7 +52,7 @@
 
     <!-- Domain Library -->
     <domain_library name="MyDomainLibrary">
-        <domain name="MyDomain" domain_id="0">
+        <domain name="MyDomain" domain_id="3">
             <register_type name="RequestType" type_ref="RequestType" />
             <register_type name="ReplyType" type_ref="ReplyType" />
             <topic name="RequestTopic" register_type_ref="RequestType"/>

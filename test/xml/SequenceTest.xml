@@ -49,7 +49,7 @@
 
   <!-- Domain Library -->
   <domain_library name="MyDomainLibrary">
-    <domain name="MyDomain" domain_id="0">
+    <domain name="MyDomain" domain_id="2">
       <register_type name="SequenceTestType" type_ref="SequenceTestType"/>
       <topic name="SequenceTopic" register_type_ref="SequenceTestType"/>
     </domain>
