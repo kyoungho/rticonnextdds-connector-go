@@ -46,6 +46,20 @@ type Input struct {
 * Public Functions *
 *******************/
 
+// isValid checks if the input and its connector are valid
+func (input *Input) isValid() error {
+	if input == nil {
+		return errors.New("input is null")
+	}
+	if input.connector == nil {
+		return errors.New("input connector is null")
+	}
+	if input.connector.native == nil {
+		return errors.New("connector has been deleted")
+	}
+	return nil
+}
+
 // Read copies DDS samples from the DataReader without removing them from the receive queue.
 //
 // After a successful read, samples can be accessed via input.Samples and metadata
@@ -73,8 +87,8 @@ type Input struct {
 //	    fmt.Printf("Read: %s\n", color)
 //	}
 func (input *Input) Read() error {
-	if input == nil {
-		return errors.New("input is null")
+	if err := input.isValid(); err != nil {
+		return err
 	}
 
 	retcode := int(C.RTI_Connector_read(unsafe.Pointer(input.connector.native), input.nameCStr))
@@ -85,8 +99,8 @@ func (input *Input) Read() error {
 // and allow access them via the Connector Samples. The Take
 // function removes DDS samples from the DDS DataReader's receive queue.
 func (input *Input) Take() error {
-	if input == nil {
-		return errors.New("input is null")
+	if err := input.isValid(); err != nil {
+		return err
 	}
 
 	retcode := int(C.RTI_Connector_take(unsafe.Pointer(input.connector.native), input.nameCStr))
@@ -101,8 +115,8 @@ func (input *Input) Take() error {
 //
 // Return: The change in the current number of matched outputs. If a positive number is returned, the input has matched with new publishers. If a negative number is returned the input has unmatched from an output. It is possible for multiple matches and/or unmatches to be returned (e.g., 0 could be returned, indicating that the input matched the same number of writers as it unmatched).
 func (input *Input) WaitForPublications(timeoutMs int) (int, error) {
-	if input == nil {
-		return -1, errors.New("input is null")
+	if err := input.isValid(); err != nil {
+		return -1, err
 	}
 
 	var currentCountChange C.int
@@ -122,8 +136,8 @@ func (input *Input) WaitForPublications(timeoutMs int) (int, error) {
 // Note that Connector Outputs are automatically assigned a name from the
 // *data_writer name* in the XML configuration.
 func (input *Input) GetMatchedPublications() (string, error) {
-	if input == nil {
-		return "", errors.New("input is null")
+	if err := input.isValid(); err != nil {
+		return "", err
 	}
 
 	var jsonCStr *C.char

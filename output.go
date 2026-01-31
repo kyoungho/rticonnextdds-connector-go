@@ -43,6 +43,20 @@ type Output struct {
 * Public Functions *
 *******************/
 
+// isValid checks if the output and its connector are valid
+func (output *Output) isValid() error {
+	if output == nil {
+		return errors.New("output is null")
+	}
+	if output.connector == nil {
+		return errors.New("output connector is null")
+	}
+	if output.connector.native == nil {
+		return errors.New("connector has been deleted")
+	}
+	return nil
+}
+
 // Write publishes the current instance data to the DDS Topic.
 //
 // The data to be written must be set first using the Instance field methods
@@ -62,8 +76,8 @@ type Output struct {
 //	    log.Printf("Write failed: %v", err)
 //	}
 func (output *Output) Write() error {
-	if output == nil {
-		return errors.New("output is null")
+	if err := output.isValid(); err != nil {
+		return err
 	}
 
 	retcode := int(C.RTI_Connector_write(unsafe.Pointer(output.connector.native), output.nameCStr, nil))
@@ -82,8 +96,8 @@ func (output *Output) Write() error {
 //	  identity={"writer_guid":[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], "sequence_number":1},
 //		 timestamp=1000000000)
 func (output *Output) WriteWithParams(jsonStr string) error {
-	if output == nil {
-		return errors.New("output is null")
+	if err := output.isValid(); err != nil {
+		return err
 	}
 
 	jsonCStr := C.CString(jsonStr)
@@ -95,8 +109,8 @@ func (output *Output) WriteWithParams(jsonStr string) error {
 
 // ClearMembers is a function to initialize a DDS data instance in an output
 func (output *Output) ClearMembers() error {
-	if output == nil {
-		return errors.New("output is null")
+	if err := output.isValid(); err != nil {
+		return err
 	}
 
 	retcode := int(C.RTI_Connector_clear(unsafe.Pointer(output.connector.native), output.nameCStr))
@@ -112,8 +126,8 @@ func (output *Output) ClearMembers() error {
 
 // Return: The change in the current number of matched outputs. If a positive number is returned, the input has matched with new publishers. If a negative number is returned the input has unmatched from an output. It is possible for multiple matches and/or unmatches to be returned (e.g., 0 could be returned, indicating that the input matched the same number of writers as it unmatched).
 func (output *Output) WaitForSubscriptions(timeoutMs int) (int, error) {
-	if output == nil {
-		return -1, errors.New("output is null")
+	if err := output.isValid(); err != nil {
+		return -1, err
 	}
 
 	var currentCountChange C.int
@@ -134,8 +148,8 @@ func (output *Output) WaitForSubscriptions(timeoutMs int) (int, error) {
 // Note that Connector Inputs are automatically assigned a name from the
 // *data_reader name* in the XML configuration.
 func (output *Output) GetMatchedSubscriptions() (string, error) {
-	if output == nil {
-		return "", errors.New("output is null")
+	if err := output.isValid(); err != nil {
+		return "", err
 	}
 
 	var jsonCStr *C.char
