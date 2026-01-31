@@ -288,6 +288,10 @@ func (infos *Infos) GetSampleState(index int) (string, error) {
 
 // GetLength is a function to return the length of the
 func (infos *Infos) GetLength() (int, error) {
+	if infos == nil {
+		return 0, errors.New("infos is null")
+	}
+
 	var retVal C.double
 	retcode := int(C.RTI_Connector_get_sample_count(unsafe.Pointer(infos.input.connector.native), infos.input.nameCStr, &retVal))
 	err := checkRetcode(retcode)
@@ -295,6 +299,10 @@ func (infos *Infos) GetLength() (int, error) {
 }
 
 func (infos *Infos) getJSONMember(index int, memberName string) (string, error) {
+	if infos == nil {
+		return "", errors.New("infos is null")
+	}
+
 	memberNameCStr := C.CString(memberName)
 	defer C.free(unsafe.Pointer(memberNameCStr))
 

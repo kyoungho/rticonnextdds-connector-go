@@ -524,10 +524,7 @@ func TestSynchronizedWrites(t *testing.T) {
 // ============================
 
 // TestNullPointerHandling tests error handling for nil pointers
-// Note: Current implementation panics on nil pointers instead of returning errors
 func TestNullPointerHandling(t *testing.T) {
-	t.Skip("Current implementation panics on nil pointers - this test documents expected behavior but is skipped to avoid test failures")
-
 	// Test nil Samples
 	var samples *Samples
 	_, err := samples.GetLength()
