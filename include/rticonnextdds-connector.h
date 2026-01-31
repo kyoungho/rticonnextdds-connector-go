@@ -7,9 +7,30 @@
 * This code contains trade secrets of Real-Time Innovations, Inc.            *
 *                                                                            *
 *****************************************************************************/
-#include "lua_binding/lua_binding_ddsConnector.h"
+
+#ifndef RTI_CONNECTOR_H
+#define RTI_CONNECTOR_H
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
+/* Forward declarations */
+struct RTIDDSConnector;
 typedef struct RTIDDSConnector RTI_Connector;
 
+/* Type definitions */
+struct RTI_Connector_Options {
+    /* boolean */ int enable_on_data_event;
+    /* boolean */ int one_based_sequence_indexing;
+};
+
+#define RTI_Connector_Options_INITIALIZER { \
+        1, /* enable_on_data_event */ \
+        1  /* one_based_sequence_indexing */ \
+}
+
+/* Function declarations */
 int RTI_Connector_get_sample_count(
 	void *self,
 	const char *entity_name,
@@ -82,16 +103,9 @@ int RTI_Connector_write(
 	const char *entity_name,
 	const char *params_json);
 
-struct RTI_Connector_Options {
-        /* boolean */ int enable_on_data_event;
-	/* boolean */ int one_based_sequence_indexing;
-};
-
-
-#define RTI_Connector_Options_INITIALIZER { \
-        1, /* enable_on_data_event */ \
-	1  /* one_based_sequence_indexing */ \
-}
+int RTI_Connector_return_loan(
+	void *self,
+	const char *entity_name);
 
 RTI_Connector *RTI_Connector_new(
 	const char *config_name,
@@ -120,29 +134,6 @@ int RTI_Connector_get_string_from_sample(
 	const char *entity_name,
 	int index,
 	const char *name);
-
-// We will uncomment the following functions when Go wrapper functions are implemented. 
-/*
-int RTI_Connector_get_any_from_sample(
-	void *self,
-	double *double_value_out,
-	RTIBool *bool_value_out,
-	char **string_value_out,
-	RTI_Connector_AnyValueKind *selected_out,
-	const char *entity_name,
-	int index,
-	const char *name);
-
-int RTI_Connector_get_any_from_info(
-	void *self,
-	double *double_value_out,
-	RTIBool *bool_value_out,
-	char **string_value_out,
-	RTI_Connector_AnyValueKind *selected_out,
-	const char *entity_name,
-	int index,
-	const char *name);
- */
 
 int RTI_Connector_clear_member(
 	void *self,
@@ -201,3 +192,9 @@ void RTI_Connector_free_string(char *str);
 
 int RTI_Connector_set_max_objects_per_thread(
 	int value);
+
+#ifdef __cplusplus
+}
+#endif
+
+#endif /* RTI_CONNECTOR_H */

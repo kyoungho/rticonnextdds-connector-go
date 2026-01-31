@@ -43,11 +43,11 @@ lint:
 
 .PHONY: download-libs
 download-libs:
-	go run ./cmd/download-libs
+	GITHUB_TOKEN="${GITHUB_TOKEN}" go run ./cmd/download-libs
 
 .PHONY: download-libs-latest
 download-libs-latest:
-	go run ./cmd/download-libs -force
+	GITHUB_TOKEN="${GITHUB_TOKEN}" go run ./cmd/download-libs -force
 
 .PHONY: check-libs
 check-libs:

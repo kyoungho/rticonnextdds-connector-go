@@ -51,6 +51,16 @@ func main() {
 		return
 	}
 
+	// Check if libraries already exist (unless force is specified)
+	libDir := filepath.Join(*destination, "rticonnextdds-connector")
+	if !*force {
+		if _, err := os.Stat(libDir); err == nil {
+			fmt.Printf("✅ Libraries already exist at %s\n", libDir)
+			fmt.Printf("Use -force flag to overwrite, or -current to check installation\n")
+			return
+		}
+	}
+
 	targetVersion := *version
 	if targetVersion == "" {
 		var err error
@@ -84,6 +94,11 @@ func detectPlatform() string {
 			return "linux-x64"
 		case "arm64":
 			return "linux-arm64"
+		case "arm":
+			// linux-arm (32-bit) was removed in v1.4.0
+			fmt.Printf("⚠️  Warning: linux-arm (32-bit) support was removed in v1.4.0\n")
+			fmt.Printf("   Use v1.3.1 or earlier for 32-bit ARM support\n")
+			return "linux-arm"
 		default:
 			fmt.Printf("Unsupported Linux architecture: %s\n", runtime.GOARCH)
 			os.Exit(1)
@@ -91,6 +106,9 @@ func detectPlatform() string {
 	case "darwin":
 		switch runtime.GOARCH {
 		case "amd64":
+			// osx-x64 (Intel Mac) was removed in v1.4.0
+			fmt.Printf("⚠️  Warning: osx-x64 (Intel Mac) support was removed in v1.4.0\n")
+			fmt.Printf("   Use v1.3.1 or earlier for Intel Mac support\n")
 			return "osx-x64"
 		case "arm64":
 			return "osx-arm64"
@@ -112,14 +130,50 @@ func getPlatform() string {
 	return detectPlatform()
 }
 
+// createHTTPClient creates an HTTP client with optional GitHub token authentication
+func createHTTPClient() *http.Client {
+	return &http.Client{}
+}
+
+// createRequest creates an HTTP request with optional GitHub token authentication
+func createRequest(method, url string) (*http.Request, error) {
+	req, err := http.NewRequest(method, url, nil)
+	if err != nil {
+		return nil, err
+	}
+
+	// Add GitHub token if available
+	if token := os.Getenv("GITHUB_TOKEN"); token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+
+	return req, nil
+}
+
 func listVersions() {
 	fmt.Println("📋 Available Versions:")
-	resp, err := http.Get(baseURL + "/releases")
+
+	req, err := createRequest("GET", baseURL+"/releases")
+	if err != nil {
+		fmt.Printf("Error creating request: %v\n", err)
+		return
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		fmt.Printf("Error fetching versions: %v\n", err)
 		return
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		fmt.Printf("Error: API request failed with status %s\n", resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			fmt.Println("Hint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable.")
+		}
+		return
+	}
 
 	var releases []Release
 	if err := json.NewDecoder(resp.Body).Decode(&releases); err != nil {
@@ -136,14 +190,24 @@ func listVersions() {
 }
 
 func getLatestVersion() (string, error) {
-	resp, err := http.Get(baseURL + "/releases/latest")
+	req, err := createRequest("GET", baseURL+"/releases/latest")
+	if err != nil {
+		return "", err
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("API request failed: %s", resp.Status)
+		errMsg := fmt.Sprintf("API request failed: %s", resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			errMsg += "\nHint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable."
+		}
+		return "", fmt.Errorf(errMsg)
 	}
 
 	var release Release
@@ -160,14 +224,25 @@ func getLatestVersion() (string, error) {
 
 func getDownloadURL(version string) (string, string, error) {
 	releaseURL := fmt.Sprintf("%s/releases/tags/%s", baseURL, version)
-	resp, err := http.Get(releaseURL)
+
+	req, err := createRequest("GET", releaseURL)
+	if err != nil {
+		return "", "", err
+	}
+
+	client := createHTTPClient()
+	resp, err := client.Do(req)
 	if err != nil {
 		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("release %s not found", version)
+		errMsg := fmt.Sprintf("release %s not found (status: %s)", version, resp.Status)
+		if resp.StatusCode == http.StatusForbidden {
+			errMsg += "\nHint: You may have hit GitHub API rate limits. Set GITHUB_TOKEN environment variable."
+		}
+		return "", "", fmt.Errorf(errMsg)
 	}
 
 	var release Release
@@ -300,15 +375,6 @@ func downloadLibraries(version, dest string, force bool) error {
 	platform := getPlatform()
 	libDir := filepath.Join(dest, "rticonnextdds-connector")
 
-	// Check if libraries already exist
-	if !force {
-		if _, err := os.Stat(libDir); err == nil {
-			fmt.Printf("⚠️  Libraries already exist at %s\n", libDir)
-			fmt.Printf("Use -force flag to overwrite, or -current to check installation\n")
-			return nil
-		}
-	}
-
 	fmt.Printf("🌐 Downloading RTI Connector %s...\n", version)
 	fmt.Printf("📱 Target platform: %s\n", platform)
 
@@ -355,6 +421,28 @@ func downloadLibraries(version, dest string, force bool) error {
 	}
 
 	fmt.Printf("✅ Libraries installed to: %s\n", libDir)
+
+	// Verify platform-specific libraries exist
+	platformLibDir := filepath.Join(libDir, "lib", platform)
+	if _, err := os.Stat(platformLibDir); os.IsNotExist(err) {
+		// List available platforms for debugging
+		libBase := filepath.Join(libDir, "lib")
+		entries, readErr := os.ReadDir(libBase)
+		if readErr == nil {
+			var availablePlatforms []string
+			for _, e := range entries {
+				if e.IsDir() {
+					availablePlatforms = append(availablePlatforms, e.Name())
+				}
+			}
+			return fmt.Errorf("platform '%s' not found in %s. Available platforms: %v. "+
+				"This version may not support your platform. Try: -version v1.3.1",
+				platform, version, availablePlatforms)
+		}
+		return fmt.Errorf("platform '%s' libraries not found in downloaded archive", platform)
+	}
+
+	fmt.Printf("✅ Platform libraries verified: %s\n", platformLibDir)
 	return nil
 }
 
@@ -368,14 +456,39 @@ func extractZip(src, dest, connectorDir string) error {
 	// Create the rticonnextdds-connector directory
 	os.MkdirAll(connectorDir, 0755)
 
+	// Detect archive structure:
+	// - v1.3.1 and earlier: lib/* (need to prepend connectorDir)
+	// - v1.4.0 and later: rticonnextdds-connector/lib/* (already has prefix)
+	hasConnectorPrefix := false
+	for _, f := range r.File {
+		if strings.HasPrefix(f.Name, "rticonnextdds-connector/") {
+			hasConnectorPrefix = true
+			break
+		}
+	}
+
 	// Extract files
 	for _, f := range r.File {
-		// Map the extracted path to include the connector directory
-		// The ZIP contains lib/* which we want to extract to rticonnextdds-connector/lib/*
-		path := filepath.Join(connectorDir, f.Name)
+		var path string
+		if hasConnectorPrefix {
+			// v1.4.0+: Extract directly to dest, the archive already has rticonnextdds-connector/ prefix
+			path = filepath.Join(dest, f.Name)
+		} else {
+			// v1.3.1 and earlier: Prepend connectorDir to create rticonnextdds-connector/lib/*
+			path = filepath.Join(connectorDir, f.Name)
+		}
 
 		// Check for ZipSlip vulnerability - ensure path is within the destination tree
-		if !strings.HasPrefix(path, filepath.Clean(connectorDir)+string(os.PathSeparator)) {
+		// Use absolute paths to avoid issues with relative path comparisons
+		absDest, err := filepath.Abs(dest)
+		if err != nil {
+			return fmt.Errorf("getting absolute path for dest: %v", err)
+		}
+		absPath, err := filepath.Abs(path)
+		if err != nil {
+			return fmt.Errorf("getting absolute path for file: %v", err)
+		}
+		if !strings.HasPrefix(absPath, absDest+string(os.PathSeparator)) && absPath != absDest {
 			continue
 		}
 

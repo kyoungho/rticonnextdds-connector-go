@@ -63,11 +63,17 @@ make list-lib-versions     # List available versions
 
 The tool automatically detects your platform and downloads the appropriate libraries:
 
+**Supported Platforms (v1.4.0+):**
 - **Linux x64**: `linux-x64` libraries
 - **Linux ARM64**: `linux-arm64` libraries  
-- **macOS Intel**: `osx-x64` libraries
 - **macOS Apple Silicon**: `osx-arm64` libraries
 - **Windows x64**: `win-x64` libraries
+
+**Legacy Platforms (v1.3.1 and earlier only):**
+- **macOS Intel**: `osx-x64` libraries (removed in v1.4.0)
+- **Linux ARM 32-bit**: `linux-arm` libraries (removed in v1.4.0)
+
+> ⚠️ **Note**: If you need Intel Mac or 32-bit ARM Linux support, use v1.3.1: `go run ./cmd/download-libs -version v1.3.1`
 
 ### Library Path Setup
 
@@ -134,7 +140,8 @@ make list-lib-versions
 ```
 
 Recent versions include:
-- v1.3.1 (latest)
+- v1.4.0 (latest) - Apple Silicon support, removed Intel Mac and 32-bit ARM
+- v1.3.1 - Last version with Intel Mac (osx-x64) and 32-bit ARM (linux-arm) support
 - v1.3.0
 - v1.2.3
 - v1.2.2
@@ -152,15 +159,22 @@ rticonnextdds-connector/
 │   │   ├── libnddscore.so
 │   │   └── librtiddsconnector.so
 │   ├── linux-arm64/
-│   ├── osx-x64/
+│   │   ├── libnddsc.so
+│   │   ├── libnddscore.so
+│   │   └── librtiddsconnector.so
 │   ├── osx-arm64/
 │   │   ├── libnddsc.dylib
 │   │   ├── libnddscore.dylib
 │   │   └── librtiddsconnector.dylib
 │   └── win-x64/
-├── include/
-└── examples/
+│       ├── nddsc.dll
+│       ├── nddscore.dll
+│       ├── rtiddsconnector.dll
+│       └── vcruntime140.dll
+└── include/
 ```
+
+> **Note**: v1.3.1 and earlier also included `osx-x64/` and `linux-arm/` directories.
 
 ## Troubleshooting
 

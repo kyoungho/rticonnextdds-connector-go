@@ -165,3 +165,44 @@ func (output *Output) GetMatchedSubscriptions() (string, error) {
 
 	return jsonGoStr, nil
 }
+
+// WaitForAcknowledgments blocks until all reliable matched readers have acknowledged
+// all previously written data from this Output, or until the timeout expires.
+//
+// This is critical for ensuring reliable delivery when using RELIABLE QoS. The method
+// blocks until all matched DataReaders acknowledge receipt of the data samples that
+// were written prior to calling this function.
+//
+// Parameters:
+//   - timeoutMs: Maximum time to wait in milliseconds. Use -1 for infinite timeout.
+//
+// Returns:
+//   - error: ErrTimeout if timeout expires before acknowledgments received,
+//     or other error if the operation fails
+//
+// Example:
+//
+//	output.Instance.SetString("message", "critical data")
+//	err := output.Write()
+//	if err != nil {
+//	    log.Printf("Write failed: %v", err)
+//	    return
+//	}
+//
+//	// Wait up to 5 seconds for all readers to acknowledge
+//	err = output.WaitForAcknowledgments(5000)
+//	if err == rti.ErrTimeout {
+//	    log.Println("Acknowledgment timeout - data may not be fully delivered")
+//	} else if err != nil {
+//	    log.Printf("Wait failed: %v", err)
+//	} else {
+//	    log.Println("All readers acknowledged the data")
+//	}
+func (output *Output) WaitForAcknowledgments(timeoutMs int) error {
+	if output == nil {
+		return errors.New("output is null")
+	}
+
+	retcode := int(C.RTI_Connector_wait_for_acknowledgments(unsafe.Pointer(output.native), C.int(timeoutMs)))
+	return checkRetcode(retcode)
+}
